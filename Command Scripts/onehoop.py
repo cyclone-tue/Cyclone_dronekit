@@ -1,6 +1,6 @@
 import configs
 from cyclone import Cyclone
-from dronekit import LocationGlobalRelative
+from dronekit import LocationGlobalRelative, LocationGlobal
 
 import argparse
 parser = argparse.ArgumentParser(
