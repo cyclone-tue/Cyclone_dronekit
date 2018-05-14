@@ -598,7 +598,7 @@ MatrixXd executeVision() {
 
         cap >> frame; //passing the captured frame onto a Mat object
         //filter2D(frame, frame,-1,kernel, Point(-1,-1), 0, BORDER_DEFAULT);
-        imshow("Frame", frame);
+        // imshow("Frame", frame);
         //circle(frame, Point(finalEllipse[1].center.x * 2, finalEllipse[1].center.y * 2), 5, Scalar(255,0,0), 50);
         //        double fps = cap.get(CV_CAP_PROP_FPS);
         //        cout << "fps: " << fps << endl;
