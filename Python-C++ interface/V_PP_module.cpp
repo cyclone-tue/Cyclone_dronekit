@@ -22,9 +22,9 @@ int dilation_type = 0;
 double est = 0;
 double a = 0;
 int n = 0;
-string red = "/home/student/CLionProjects/Pp2/red2.txt"; //the text files containing the thresholding data
+string red = "./red2.txt"; //the text files containing the thresholding data
 //string blue = "/Users/Bouda/Desktop/TUEindhoven/Cyclone/blue2.txt";
-string green = "/home/student/CLionProjects/Pp2/green2.txt";
+string green = "./green2.txt";
 vector<RotatedRect> finalEllipse(1); //detected ellipse is stored here
 VectorXd coef_vec2(6);
 
@@ -283,7 +283,7 @@ Mat removeBG(Mat& input, Mat& frame) {
     Mat junk;
     string line;
     ifstream myfile;
-    myfile.open("/home/student/CLionProjects/Pp2/junk.txt"); //threshold values loaded from a text file
+    myfile.open("./junk.txt"); //threshold values loaded from a text file
     if (myfile.is_open()) {
         getline (myfile,line);
         low_v = atoi(line.c_str());
@@ -532,7 +532,7 @@ void record_values(){
 
 void angles(){
     ofstream file;
-    file.open("/home/student/CLionProjects/Pp2/angles2.txt", ios::out);
+    file.open("./angles2.txt", ios::out);
     file <<"measured "<< dist_meas << " " << angle_ver << " " << angle_hor << "\n";
     file <<"ellipse par " << finalEllipse[1].size.height<< " " << finalEllipse[1].size.width << "\n";
     file <<"\n";
@@ -554,7 +554,7 @@ MatrixXd executeVision() {
     //            videoconvert ! video/x-raw, format=(string)BGR ! \
     //            appsink";
 
-    VideoCapture cap("/home/student/CLionProjects/Pp2/1,5m_right60.avi");
+    VideoCapture cap("./video2.mp4");
     //VideoCapture cap(1);
     //
     //    cap.set(CV_CAP_PROP_FRAME_WIDTH,640);
@@ -578,13 +578,13 @@ MatrixXd executeVision() {
     cap.set(CV_CAP_PROP_CONTRAST, 0.75);
     cap.set(CV_CAP_PROP_BRIGHTNESS, 0.3);
     cap.set(CV_CAP_PROP_FOURCC ,CV_FOURCC('M', 'J', 'P', 'G') );
-    namedWindow("Final Threshold", CV_WINDOW_AUTOSIZE);
-    namedWindow("Detection", CV_WINDOW_AUTOSIZE);
+    // namedWindow("Final Threshold", CV_WINDOW_AUTOSIZE);
+    // namedWindow("Detection", CV_WINDOW_AUTOSIZE);
     //namedWindow("Trackbar", CV_WINDOW_AUTOSIZE);
-    namedWindow("Frame", 1);
-    namedWindow("Down",1);
-    namedWindow("With BG", CV_WINDOW_AUTOSIZE);
-    namedWindow("Without BG", CV_WINDOW_AUTOSIZE);
+    // namedWindow("Frame", 1);
+    // namedWindow("Down",1);
+    // namedWindow("With BG", CV_WINDOW_AUTOSIZE);
+    // namedWindow("Without BG", CV_WINDOW_AUTOSIZE);
     //createTrackbar( " Drone rotation ", "Trackbar", &delta, 360, contours_trackbar); //simulaion
     //createTrackbar( " Drone altitude ", "Trackbar", &h_bar, 500, contours_trackbar);
 
@@ -685,14 +685,14 @@ MatrixXd executePathPlanner() {
     MatrixXd vel_corr_in(3,1);
     MatrixXd dist_corr_fin(3,1);
     MatrixXd vel_corr_fin(3,1);
-    
+
     MatrixXd distanceBeforeHoop(3,1);
     MatrixXd velocityBeforeHoop(3,1);
     MatrixXd distanceAfterHoop(3,1);
     MatrixXd velocityAfterHoop(3,1);
     MatrixXd hoop_state(1,3);
     double orientation;
-    
+
     distanceAfterHoop << 0, d_after, 0;
     velocityAfterHoop << 0, v_after, 0;
     MatrixXd hoop_pos(1,3);
@@ -703,28 +703,28 @@ MatrixXd executePathPlanner() {
     hoop_pos = hoop_state.block<1,3>(0,0);
     distanceBeforeHoop << 0, d_before, 0;
     velocityBeforeHoop << 0, v_in, 0;
-    
+
     R << cos(orientation), sin(orientation), 0, -sin(orientation), cos(orientation), 0, 0, 0, 1;
     dist_corr_in = R * distanceBeforeHoop;
     vel_corr_in = R * velocityBeforeHoop;
     dist_corr_fin = R * distanceAfterHoop;
     vel_corr_fin = R * velocityAfterHoop;
-    
+
     MatrixXd p_before_hoop(2, 3);
     MatrixXd p_before_hoop1(1,3);
     MatrixXd p_before_hoop2(1,3);
-    
+
     p_before_hoop1 << hoop_pos - dist_corr_in.transpose();
     p_before_hoop2 << vel_corr_in.transpose();
     p_before_hoop << p_before_hoop1 , p_before_hoop2;
-    
+
     MatrixXd final(3, 3);
     MatrixXd final1(1, 3);
     MatrixXd final2(1, 3);
     final1 << hoop_pos + dist_corr_fin.transpose();
     final2 << vel_corr_fin.transpose();
     final << final1, final2, 0, 0, 0;
-    
+
     double yaw0 = 0;
     double hoop_orient = orientation;
     MatrixXd r = Dimention3(init, p_before_hoop, final, hoop_pos, yaw0, hoop_orient);
@@ -766,6 +766,3 @@ extern "C" {
 //    }
 //    // the camera will be deinitialized automatically in VideoCapture destructor
 //    return 0;
-
-
-
