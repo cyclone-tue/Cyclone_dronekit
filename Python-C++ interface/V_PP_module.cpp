@@ -590,7 +590,7 @@ MatrixXd executeVision() {
 
     std::cout << "got here" << endl;
 
-    while (count < 1000) {
+    while (count < 50) {
         Mat frame;
         Mat kernel;
         //int kernel_size = 3 + 2*( 0%5 );
