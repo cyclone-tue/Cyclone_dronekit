@@ -2,7 +2,7 @@
 This is the main class for the drone. It includes all the methods used.
 The exact command scripts should import this class by "from cyclone import Cyclone".
 """
-from dronekit import connect, Vehicle, VehicleMode, LocationGlobalRelative, Command
+from dronekit import connect, Vehicle, VehicleMode, LocationGlobal, LocationGlobalRelative, Command
 from pymavlink import mavutil
 import time
 import math
