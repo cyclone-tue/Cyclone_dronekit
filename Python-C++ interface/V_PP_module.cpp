@@ -701,8 +701,8 @@ MatrixXd executePathPlanner() {
     //orientation = 30*M_PI/180;
     //hoop_pos << 1,2,3;
     hoop_pos = hoop_state.block<1,3>(0,0);
-    double ppX = hoop_pos(0,1);
-    double ppY = hoop_pos(0,2);
+    double ppX = hoop_pos(0,2);
+    double ppY = hoop_pos(0,1);
     double ppZ = hoop_pos(0,0);
     hoop_pos(0,0) = ppX; //x
     hoop_pos(0,1) = ppY; //y
