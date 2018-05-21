@@ -43,20 +43,23 @@ def matrix_index(a, nrow, (m, n)):
 print("Extracting location and velocity from every point in the trajectory...")
 for i in range(nrow):
     LocationTuples.append((matrix_index(converted, nrow, (i, 0)), matrix_index(
-        converted, nrow, (i, 1)), matrix_index(converted, nrow, (i, 2))))
+        converted, nrow, (i, 4)), matrix_index(converted, nrow, (i, 8))))
     VelocityTuples.append((matrix_index(converted, nrow, (i, 3)), matrix_index(
         converted, nrow, (i, 4)), matrix_index(converted, nrow, (i, 5))))
 
 for i in range(0, 99, 9):
-    list_location.append(LocationTuples[i])
-    list_velocity.append(VelocityTuples[i])
+    list_location.append(drone.local_NED_to_global_NED(*LocationTuples[i]))
+    # list_velocity.append(VelocityTuples[i])
 
 # Main Script:
 drone.arm_and_takeoff(5)
 drone.set_airspeed(5)
 for i in range(len(list_location)):
     print('Start Mission %d' % (i + 1))
-    drone.goto_local_NED(*list_location[i])
+    if i == 0:
+        drone.goto_global_NED(*list_location[i])
+    else:
+        drone.goto_global_NED(list_location[i][0] - list_location[i-1][0], list_location[i][1] - list_location[i-1][1], list_location[i][2] - list_location[i-1][2])
 
 # for i in range(len(list_velocity)):
 #     print('Start Mission %d' % (i + 1))
