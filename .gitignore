@@ -3,3 +3,5 @@ Command Scripts/.idea/Command Scripts.iml
 Command Scripts/.idea/misc.xml
 Command Scripts/.idea/modules.xml
 Command Scripts/.idea/workspace.xml
+*.iml
+*.xml
