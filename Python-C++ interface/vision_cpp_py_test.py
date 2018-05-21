@@ -40,6 +40,6 @@ with open("trajectory.txt", "w") as text_file:
     for row in StateTuples:
         # line = ''.join(str(x) + '  ' for x in row)
         # text_file.write(str(index) + '  ' + line + '\n')
-        text_file.write('{0:<4}{1[0]:<4}{1[1]:<4}{1[2]:<4}{1[3]:<4}{1[4]:<18}{1[5]:<18}{1[6]:<18}{1[7]:<18}{1[8]:<18}{1[9]:<18}{1[10]:<18}{1[11]:>18}\n'.format(index, row))
+        text_file.write('{0:<4}{1[0]:<4}{1[1]:<4}{1[2]:<4}{1[3]:<4}{1[4]:<20}{1[5]:<20}{1[6]:<20}{1[7]:<20}{1[8]:<20}{1[9]:<20}{1[10]:<20}{1[11]:<20}\n'.format(index, row))
         index = index + 1
 
