@@ -54,9 +54,13 @@ for i in range(0, 99, 9):
     list_location.append(drone.local_NED_to_global_NED(*LocationTuples[i]))
     # list_velocity.append(VelocityTuples[i])
 
-print('Coordinates of the waypoints:')
+print('Coordinates in global NED of the waypoints:')
 for row in list_location:
     print(row)
+
+print('Coordinates in WGS84 of the waypoints:')
+for row in list_location:
+    print(drone.global_NED_to_wp(drone.vehicle.location.global_relative_frame, row[0], row[1], row[2]))
 
 for i in range(len(list_location)):
     print('Start Mission %d' % (i + 1))
