@@ -19,7 +19,8 @@ def matrix_index(a, nrow, (m, n)):
 print("Extracting location and velocity from every point in the trajectory...")
 
 for i in range(nrow):
-    StateTuples.append((matrix_index(converted, nrow, (i, j)) for j in range(12)))
+    StateTuples.append((matrix_index(converted, nrow, (i, 0)), matrix_index(converted, nrow, (i, 1)), matrix_index(converted, nrow, (i, 2)), matrix_index(converted, nrow, (i, 3)), matrix_index(converted, nrow, (i, 4)), matrix_index(converted, nrow, (i, 5)),
+                        matrix_index(converted, nrow, (i, 6)), matrix_index(converted, nrow, (i, 7)), matrix_index(converted, nrow, (i, 8)), matrix_index(converted, nrow, (i, 9)), matrix_index(converted, nrow, (i, 10)), matrix_index(converted, nrow, (i, 11))))
     LocationTuples.append((matrix_index(converted, nrow, (i, 0)), matrix_index(converted, nrow, (i, 4)), matrix_index(converted, nrow, (i, 8))))
     VelocityTuples.append((matrix_index(converted, nrow, (i, 3)), matrix_index(converted, nrow, (i, 2)), matrix_index(converted, nrow, (i, 5))))
 # print("Tuples of location (x, y, z) at time t=1 ... 100 are: \n")
