@@ -38,7 +38,8 @@ with open("trajectory.txt", "w") as text_file:
     index = 1
     # for row in LocationTuples:
     for row in StateTuples:
-        line = ''.join(str(x) + '  ' for x in row)
-        text_file.write(str(index) + '  ' + line + '\n')
+        # line = ''.join(str(x) + '  ' for x in row)
+        # text_file.write(str(index) + '  ' + line + '\n')
+        text_file.write('{0:4}{1:4}{2:4}{3:4}{4:4}{5:4}{6:4}{7:4}{8:4}{9:4}{10:4}{11:4}{12}\n'.format(index, *row))
         index = index + 1
 
