@@ -24,12 +24,6 @@ drone = Cyclone(connection_string, configs)
 import ctypes
 so = ctypes.cdll.LoadLibrary
 lib = so("../Python-C++ interface/libcpp_py_vision.so")
-print "output_to_py(): \n"
-output_to_py_func = lib.output_to_py
-output_to_py_func.restype = ctypes.POINTER(ctypes.c_double)
-converted = output_to_py_func()
-nrow = 100
-ncol = 12
 LocationTuples = []
 VelocityTuples = []
 list_location = []
@@ -39,7 +33,16 @@ list_velocity = []
 def matrix_index(a, nrow, (m, n)):
     return(a[nrow * n + m])
 
+# Main Script:
+drone.arm_and_takeoff(5)
+drone.set_airspeed(5)
 
+print "Vision&PP output_to_py(): \n"
+output_to_py_func = lib.output_to_py
+output_to_py_func.restype = ctypes.POINTER(ctypes.c_double)
+converted = output_to_py_func()
+nrow = 100
+ncol = 12
 print("Extracting location and velocity from every point in the trajectory...")
 for i in range(nrow):
     LocationTuples.append((matrix_index(converted, nrow, (i, 0)), matrix_index(
@@ -50,10 +53,10 @@ for i in range(nrow):
 for i in range(0, 99, 9):
     list_location.append(drone.local_NED_to_global_NED(*LocationTuples[i]))
     # list_velocity.append(VelocityTuples[i])
+    
+print('Coordinates of the waypoints:')
+print(list_location)
 
-# Main Script:
-drone.arm_and_takeoff(5)
-drone.set_airspeed(5)
 for i in range(len(list_location)):
     print('Start Mission %d' % (i + 1))
     if i == 0:
