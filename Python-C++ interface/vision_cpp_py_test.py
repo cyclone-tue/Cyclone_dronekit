@@ -9,7 +9,7 @@ nrow = 100
 ncol = 12
 LocationTuples = []
 VelocityTuples = []
-
+StateTuples = []
 
 
 def matrix_index(a, nrow, (m, n)):
@@ -19,21 +19,24 @@ def matrix_index(a, nrow, (m, n)):
 print("Extracting location and velocity from every point in the trajectory...")
 
 for i in range(nrow):
+    StateTuples.append((matrix_index(converted, nrow, (i, j)) for j in range(12)))
     LocationTuples.append((matrix_index(converted, nrow, (i, 0)), matrix_index(converted, nrow, (i, 4)), matrix_index(converted, nrow, (i, 8))))
     VelocityTuples.append((matrix_index(converted, nrow, (i, 3)), matrix_index(converted, nrow, (i, 2)), matrix_index(converted, nrow, (i, 5))))
-print("Tuples of location (x, y, z) at time t=1 ... 100 are: \n")
-for i in range(0, nrow, 1):
-    print(LocationTuples[i])
-print("\n")
-print("Tuples of velocity (Vx, Vy, Vz) at time t=1 ... 100 are: \n")
-for i in range(0, nrow, 1):
-    print(VelocityTuples[i])
-print("\n")
+# print("Tuples of location (x, y, z) at time t=1 ... 100 are: \n")
+# for i in range(0, nrow, 1):
+#     print(LocationTuples[i])
+# print("\n")
+# print("Tuples of velocity (Vx, Vy, Vz) at time t=1 ... 100 are: \n")
+# for i in range(0, nrow, 1):
+#     print(VelocityTuples[i])
+# print("\n")
 
 with open("trajectory.txt", "w") as text_file:
-    text_file.write("Tuples of location (x, y, z) at time t=1 ... 100 are: \n")
+    # text_file.write("Tuples of location (x, y, z) at time t=1 ... 100 are: \n")
+    text_file.write("Tuples of all the states at time t=1 ... 100 are: \n")
     index = 1
-    for row in LocationTuples:
+    # for row in LocationTuples:
+    for row in StateTuples:
         line = ''.join(str(x) + '  ' for x in row)
         text_file.write(str(index) + '  ' + line + '\n')
         index = index + 1
