@@ -16,9 +16,9 @@ import argparse
 #            (51.4492035, 5.493595, 5),
 #            (51.449272,	5.493548, 5)]
 
-listWPs = [(51.449280, 5.493137, 5),
-           (51.449218, 5.493094, 5),
-           (51.449156, 5.493051, 5)]
+listWPs = [(51.44907379, 5.49353947, 1.3),
+           (51.44907165, 5.49347068, 1.3),
+           (51.44906840, 5.49361497, 1.3)]
 
 
 parser = argparse.ArgumentParser(
@@ -38,10 +38,10 @@ if not connection_string:
 
 drone = Cyclone(connection_string, configs)
 drone.awake_script()
-# drone.arm_and_takeoff(5)
+drone.arm_and_takeoff(5)
 drone.set_airspeed(5)
 for i in range(len(listWPs)):
     print('Start Mission %d' % (i + 1))
-    drone.goto_wp_global(LocationGlobalRelative(*listWPs[i]))
+    drone.goto_wp_global(LocationGlobalRelative(*listWPs[i]), func='set')
 # drone.mode_rtl()
 del drone

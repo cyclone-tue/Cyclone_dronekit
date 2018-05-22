@@ -312,6 +312,34 @@ class Cyclone(object):
                 break
             time.sleep(self.sleep_time)
 
+
+    def set_position_target_global_int(self, aLocation):
+        """MAVLink command wrapping method for a navigatiing to a global WGS84 target.
+        It actuates the drone to fly to a global WGS84 coordinate (MAVLink command: SET_POSITION_TARGET_GLOBAL_INT).
+
+        Args:
+            aLocation: Target location wrapped in global relative frame.
+        Returns:
+            nothing
+        """
+        msg = self.vehicle.message_factory.set_position_target_global_int_encode(
+            0,  # time_boot_ms (not used)
+            0, 0,  # target system, target component
+            mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,  # frame
+            0b0000111111111000,  # type_mask (only speeds enabled)
+            aLocation.lat * 1e7,  # lat_int - X Position in WGS84 frame in 1e7 * meters
+            aLocation.lon * 1e7,  # lon_int - Y Position in WGS84 frame in 1e7 * meters
+            aLocation.alt,
+            # alt - Altitude in meters in AMSL altitude, not WGS84 if absolute or relative, above terrain if GLOBAL_TERRAIN_ALT_INT
+            0,  # X velocity in NED frame in m/s
+            0,  # Y velocity in NED frame in m/s
+            0,  # Z velocity in NED frame in m/s
+            0, 0, 0,  # afx, afy, afz acceleration (not supported yet, ignored in GCS_Mavlink)
+            0, 0)  # yaw, yaw_rate (not supported yet, ignored in GCS_Mavlink)
+
+        # send command to vehicle
+        self.vehicle.send_mavlink(msg)
+
     def set_position_target_local_NED(self, dNorth, dEast, dDown):
         """Actuation method for a local NED target.
         It actuates the drone to fly to a local NED location.
@@ -390,18 +418,22 @@ class Cyclone(object):
                 break
             time.sleep(self.sleep_time)
 
-    def goto_wp_global(self, targetLocation):
+    def goto_wp_global(self, targetLocation, func='mav'):
         """Actuation method for global waypoint.
         It actuates the drone to fly to a global waypoint.
 
         Args:
             targetLocation: Target waypoint defined in LocationGlobalRelative
+            func: Flag for which MAVLink command to use, 'mav' - MAV_CMD_NAV_WAYPOINT or 'set' - SET_POSITION_TARGET_GLOBAL_INT
         Returns:
             nothing
         """
         currentLocation = self.vehicle.location.global_relative_frame
         targetDistance = self.get_distance_metres(currentLocation, targetLocation)
-        self.vehicle.simple_goto(targetLocation)
+        if (func == 'mav'):
+            self.vehicle.simple_goto(targetLocation)
+        else:
+            self.set_position_target_global_int(targetLocation)
 
         while self.vehicle.mode.name == "GUIDED":
             remainingDistance = self.get_distance_metres(
