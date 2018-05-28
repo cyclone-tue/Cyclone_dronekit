@@ -463,7 +463,7 @@ class Cyclone(object):
             currentLocation = self.vehicle.location.local_frame
             # remainingDistance = self.get_distance_metres(self.vehicle.location.global_relative_frame, targetLocation)
             # remainingDistance is the distance covered along the straight path from the startLocation of this navigation.
-            remainingDistance = self.get_distance_metres_EKF(startLocation, currentLocation) * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
+            remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation) * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
             print "Distance to target: ", remainingDistance
             if remainingDistance <= self.distance_threshold:
                 print "Reached target"
