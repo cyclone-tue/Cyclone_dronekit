@@ -2,7 +2,7 @@
 This is the main class for the drone. It includes all the methods used.
 The exact command scripts should import this class by "from cyclone import Cyclone".
 """
-from dronekit import connect, Vehicle, VehicleMode, LocationGlobal, LocationGlobalRelative, Command
+from dronekit import connect, Vehicle, VehicleMode, LocationGlobal, LocationGlobalRelative, LocationLocal,Command
 from pymavlink import mavutil
 import time
 import math
@@ -208,8 +208,23 @@ class Cyclone(object):
 
         return targetlocation
 
+    def get_distance_metres_EKF(self, aLocation1, aLocation2):
+        """Distance between two local locations.
+
+        Args:
+            aLocation1: First location in LocationLocal form
+            aLocation2: Second location in LocationLocal form
+        Returns:
+            (distance): Distance between the two locations in [m]
+        """
+        dNorth = aLocation2.north - aLocation1.north
+        dEast = aLocation2.east - aLocation1.east
+        # dDown = aLocation2.down - aLocation1.down
+        return math.sqrt(dNorth**2 + dEast**2)
+
+
     def get_distance_metres(self, aLocation1, aLocation2):
-        """Distance between two locations.
+        """Distance between two global locations.
         It calculates the distance between two locations in [m].
 
         Args:
@@ -323,9 +338,9 @@ class Cyclone(object):
         Returns:
             nothing
         """
-        currentLocation = self.vehicle.location.global_relative_frame
-        targetLocation = self.global_NED_to_wp(currentLocation, dNorth, dEast, dDown)
-        targetDistance = self.get_distance_metres(currentLocation, targetLocation)
+        startLocation = self.vehicle.location.global_relative_frame
+        targetLocation = self.global_NED_to_wp(startLocation, dNorth, dEast, dDown)
+        targetDistance = self.get_distance_metres(startLocation, targetLocation)
         self.vehicle.simple_goto(targetLocation)
 
         while self.vehicle.mode.name == "GUIDED":  # Stop action if we are no longer in guided mode.
@@ -428,17 +443,27 @@ class Cyclone(object):
             dNorth: Target position in terms of North(Front) to the drone [m]
             dEast: Target position in terms of East(Right) to the drone [m]
             dDown: Target position in terms of Down to the drone [m]
+            frame: frame to use: mavutil.mavlink.MAV_FRAME_LOCAL_NED - relative to home position, mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED relative to current position
+                   mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED - relative to current position with heading, details in http://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html
         Returns:
             nothing
         """
-        currentLocation = self.vehicle.location.global_relative_frame
-        targetLocation = self.global_NED_to_wp(currentLocation, dNorth, dEast, dDown)
-        targetDistance = self.get_distance_metres(currentLocation, targetLocation)
+        if (frame == mavutil.mavlink.MAV_FRAME_LOCAL_NED):
+            startLocation = self.vehicle.location.local_frame
+            targetLocation = LocationLocal(dNorth, dEast, dDown)
+            org_yaw = self.vehicle.attitude.yaw
+            targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
+        else:
+            startLocation = self.vehicle.location.global_relative_frame
+            targetLocation = self.global_NED_to_wp(startLocation, dNorth, dEast, dDown)
+            targetDistance = self.get_distance_metres(startLocation, targetLocation)
         self.set_position_target_local_NED(dNorth, dEast, dDown, frame)
 
         while self.vehicle.mode.name == "GUIDED":
-            remainingDistance = self.get_distance_metres(
-                self.vehicle.location.global_relative_frame, targetLocation)
+            currentLocation = self.vehicle.location.local_frame
+            # remainingDistance = self.get_distance_metres(self.vehicle.location.global_relative_frame, targetLocation)
+            # remainingDistance is the distance covered along the straight path from the startLocation of this navigation.
+            remainingDistance = self.get_distance_metres_EKF(startLocation, currentLocation) * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
             print "Distance to target: ", remainingDistance
             if remainingDistance <= self.distance_threshold:
                 print "Reached target"
@@ -455,8 +480,8 @@ class Cyclone(object):
         Returns:
             nothing
         """
-        currentLocation = self.vehicle.location.global_relative_frame
-        targetDistance = self.get_distance_metres(currentLocation, targetLocation)
+        startLocation = self.vehicle.location.global_relative_frame
+        targetDistance = self.get_distance_metres(startLocation, targetLocation)
         if (func == 'mav'):
             self.vehicle.simple_goto(targetLocation)
         else:
