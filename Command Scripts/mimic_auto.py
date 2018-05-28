@@ -37,7 +37,7 @@ if not connection_string:
     connection_string = sitl.connection_string()
 
 drone = Cyclone(connection_string, configs)
-drone.awake_script()
+# drone.awake_script()
 drone.arm_and_takeoff(5)
 drone.set_airspeed(5)
 for i in range(len(listWPs)):

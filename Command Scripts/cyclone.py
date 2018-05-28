@@ -164,6 +164,20 @@ class Cyclone(object):
     #         doPause = False
     #         print "Un-pausing script"
 
+    def obtain_home_location(self):
+        """Wait for the home location to be downloaded from the drone."""
+        while not self.vehicle.home_location:
+            cmds = self.vehicle.commands
+            cmds.download()
+            cmds.wait_ready()
+            if not self.vehicle.home_location:
+                print('Obtaining home location...')
+        print("Home Location: %s" % self.vehicle.home_location)
+
+    def set_home_location(self):
+        """Define the current location of the drone as the home location."""
+        self.vehicle.home_location = self.vehicle.location.global_frame
+
     # Location/Distance estimations
 
     def global_NED_to_wp(self, original_location, dNorth, dEast, dDown):
@@ -208,8 +222,7 @@ class Cyclone(object):
         dlong = aLocation2.lon - aLocation1.lon
         return math.sqrt((dlat*dlat) + (dlong*dlong)) * self.meters_per_degree
 
-    # TODO: Clarify origin and coordinate system used in the return path, currently assuming it's based on drone's position and heading
-    def local_NED_to_global_NED(self, dNorth, dEast, dDown):
+    def local_NED_to_global_NED(self, dNorth, dEast, dDown, yaw):
         """Converter from local NED to global NED
         It converts the local NED positions to a global NED positions.
 
@@ -220,12 +233,24 @@ class Cyclone(object):
         Returns:
             (target): Tuples of positions in terms of global NED positions to the drone in [m]
         """
-        yaw = self.vehicle.attitude.yaw
         global_dNorth = dNorth * math.cos(yaw) + dEast * math.cos(yaw + math.pi / 2)
         global_dEast = dNorth * math.sin(yaw) + dEast * math.sin(yaw + math.pi / 2)
         global_dDown = dDown
         return (global_dNorth, global_dEast, global_dDown)
 
+    def distance_covered_along_track(self, org_yaw):
+        """Compute the distance of the drone covered along the straight path
+        starting from the home_location with the orignal heading.
+
+        Args:
+            org_yaw: Yaw angle of the drone at the home_location[deg]
+        Returns:
+            covered_distance: Computed covered distance along the track[m]
+        """
+        current_yaw = self.vehicle.attitude.yaw
+        covered_distance = (math.sqrt(self.vehicle.location.local_frame.north**2 + self.vehicle.location.local_frame.east**2)) \
+                           * math.cos(abs(current_yaw - org_yaw))
+        return covered_distance
     # Movement functions
 
     def arm_and_takeoff(self, aTargetAltitude):
@@ -340,7 +365,7 @@ class Cyclone(object):
         # send command to vehicle
         self.vehicle.send_mavlink(msg)
 
-    def set_position_target_local_NED(self, dNorth, dEast, dDown):
+    def set_position_target_local_NED(self, dNorth, dEast, dDown, frame=mavutil.mavlink.MAV_FRAME_LOCAL_NED):
         """Actuation method for a local NED target.
         It actuates the drone to fly to a local NED location.
 
@@ -348,6 +373,8 @@ class Cyclone(object):
             dNorth: Position in terms of North(Front) to the drone [m]
             dEast: Position in terms of East(Right) to the drone [m]
             dDown: Position in terms of Down to the drone [m]
+            frame: frame to use: mavutil.mavlink.MAV_FRAME_LOCAL_NED - relative to home position, mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED relative to current position
+                   mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED - relative to current position with heading, details in http://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html
         Returns:
             nothing
         """
@@ -355,7 +382,7 @@ class Cyclone(object):
             0,       # time_boot_ms (not used)
             0, 0,    # target system, target component
             # frame: positions relative to the current vehicle position and heading
-            mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED,
+            frame,
             0b0000111111111000,  # type_mask (only positions enabled)
             # x, y, z positions (or North, East, Down in the MAV_FRAME_BODY_NED frame
             dNorth, dEast, dDown,
@@ -393,7 +420,7 @@ class Cyclone(object):
             self.vehicle.send_mavlink(msg)
             time.sleep(1)
 
-    def goto_local_NED(self, dNorth, dEast, dDown):
+    def goto_local_NED(self, dNorth, dEast, dDown, frame):
         """Actuation method for a local NED target.
         It actuates the drone to fly to a local NED location.
 
@@ -407,7 +434,7 @@ class Cyclone(object):
         currentLocation = self.vehicle.location.global_relative_frame
         targetLocation = self.global_NED_to_wp(currentLocation, dNorth, dEast, dDown)
         targetDistance = self.get_distance_metres(currentLocation, targetLocation)
-        self.set_position_target_local_NED(dNorth, dEast, dDown)
+        self.set_position_target_local_NED(dNorth, dEast, dDown, frame)
 
         while self.vehicle.mode.name == "GUIDED":
             remainingDistance = self.get_distance_metres(
