@@ -695,7 +695,7 @@ MatrixXd executeVision() {
     return estimatedHoopPos;
 }
 
-void executePathPlanner() {
+MatrixXd executePathPlanner() {
     Matrix3d init = Matrix3d::Zero();
     MatrixXd R(3, 3);
     MatrixXd dist_corr_in(3, 1);
