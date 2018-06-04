@@ -42,6 +42,7 @@ double d_before = 2; //distance from hoop in meters
 double v_in = 1; // speed at which the drone has to go through the hoop
 double d_after = 1;                    // how far after the hoop the drone has to travel
 double v_after=1;
+bool detected = false;
 
 double x_avg,y_avg,z_avg,dist_avg,angleV_avg,angleH_avg, angle_avg;
 
@@ -422,9 +423,13 @@ Mat combinedEllipse3(vector<vector<Point> >& input, Mat& t) {
 
     //if at least there are 5 detected LEDs, an ellipse is fitted over their shape, which is the final detected hoop.
     if (bigEllipse.size() > 4) {
+        detected = true;
         minEllipse[1] = fitEllipse( Mat(bigEllipse) );
         ellipse( drawing1, minEllipse[1], Scalar(0, 0, 255), 2, 8 );
         finalEllipse[1] = minEllipse[1];
+    }
+    else {
+        detected = false;
     }
     return drawing1;
 }
@@ -458,16 +463,22 @@ void estimation (double omega_passed, double ell_h, double ell_w) {
     aa = asin(sqrt((pow(cos(omega_est),2.0)*(pow(k_est,2.0)-1))/(pow(sin(omega_est),2.0)*(1-pow(k_est,2.0))-1)));
     //aa = acos(sqrt((ff1 - temp)/(1-temp))); //reverse alpha angle
 
-
-    if(ell_h<=ell_w){         //account for the constaint on the k ratio <1
-        dist_meas = (pix_meter*radius_m)/ell_w;
-        angle_hor=aa;
-        angle_ver=bb;
+    if (detected == true) {
+      if(ell_h<=ell_w){         //account for the constaint on the k ratio <1
+          dist_meas = (pix_meter*radius_m)/ell_w;
+          angle_hor=aa;
+          angle_ver=bb;
+      }
+      if (ell_h>ell_w){ // But fitEllipse only allows this if condition (height larger than width)
+          dist_meas = (pix_meter*radius_m)/ell_h;
+          angle_hor=bb;
+          angle_ver=aa;
+      }
     }
-    if (ell_h>ell_w){ // But fitEllipse only allows this if condition (height larger than width)
-        dist_meas = (pix_meter*radius_m)/ell_h;
-        angle_hor=bb;
-        angle_ver=aa;
+    else {
+        angle_hor = 0;
+        angle_ver = 0;
+        dist_meas = 0;
     }
 
     //    if (sin(omega_est) < 0) {
@@ -496,15 +507,21 @@ void position_calculation() {        //convert to cartesian coordinate system
     dist_drone = (dist_meas * 100) + drone_center;
     //    cout << "angle_hor: " << angle_hor << endl;
     //    cout << "angle_ver: " << angle_ver << endl;
-    if (k_est >= 0.94) {
-        x = 0;
-        y = 0;
-    } else {
-        x = sin(angle_ver) * cos(angle_hor) * dist_drone / 100;
-        y = sin(angle_hor) * dist_drone / 100;
+    if (detected == true) {
+      if (k_est >= 0.94) {
+          x = 0;
+          y = 0;
+      } else {
+          x = sin(angle_ver) * cos(angle_hor) * dist_drone / 100;
+          y = sin(angle_hor) * dist_drone / 100;
+      }
+      z = cos(angle_hor)*dist_drone/100;
     }
-    z = cos(angle_hor)*dist_drone/100;
-
+    else {
+      x = 0;
+      y = 0;
+      z = 0;
+    }
     full_pos();
 }
 
@@ -678,62 +695,71 @@ MatrixXd executeVision() {
     return estimatedHoopPos;
 }
 
-MatrixXd executePathPlanner() {
+void executePathPlanner() {
     Matrix3d init = Matrix3d::Zero();
-    MatrixXd R(3,3);
-    MatrixXd dist_corr_in(3,1);
-    MatrixXd vel_corr_in(3,1);
-    MatrixXd dist_corr_fin(3,1);
-    MatrixXd vel_corr_fin(3,1);
+    MatrixXd R(3, 3);
+    MatrixXd dist_corr_in(3, 1);
+    MatrixXd vel_corr_in(3, 1);
+    MatrixXd dist_corr_fin(3, 1);
+    MatrixXd vel_corr_fin(3, 1);
 
-    MatrixXd distanceBeforeHoop(3,1);
-    MatrixXd velocityBeforeHoop(3,1);
-    MatrixXd distanceAfterHoop(3,1);
-    MatrixXd velocityAfterHoop(3,1);
-    MatrixXd hoop_state(1,3);
+    MatrixXd distanceBeforeHoop(3, 1);
+    MatrixXd velocityBeforeHoop(3, 1);
+    MatrixXd distanceAfterHoop(3, 1);
+    MatrixXd velocityAfterHoop(3, 1);
+    MatrixXd hoop_state(1, 3);
     double orientation;
 
     distanceAfterHoop << 0, d_after, 0;
     velocityAfterHoop << 0, v_after, 0;
-    MatrixXd hoop_pos(1,3);
+    MatrixXd hoop_pos(1, 3);
     hoop_state = executeVision();
-    orientation = hoop_state.coeff(0,3) * M_PI/180;
+    orientation = hoop_state.coeff(0, 3) * M_PI / 180;
     //orientation = 30*M_PI/180;
-    //hoop_pos << 1,2,3;
-    hoop_pos = hoop_state.block<1,3>(0,0);
-    double ppX = hoop_pos(0,2);
-    double ppY = hoop_pos(0,1);
-    double ppZ = hoop_pos(0,0);
-    hoop_pos(0,0) = ppX; //x
-    hoop_pos(0,1) = ppY; //y
-    hoop_pos(0,2) = ppZ; //z
-    distanceBeforeHoop << 0, d_before, 0;
-    velocityBeforeHoop << 0, v_in, 0;
+    //hoop_pos << 3,4,5;
+    hoop_pos = hoop_state.block<1, 3>(0, 0);
+    std::cout << hoop_pos << std::endl;
 
-    R << cos(orientation), sin(orientation), 0, -sin(orientation), cos(orientation), 0, 0, 0, 1;
-    dist_corr_in = R * distanceBeforeHoop;
-    vel_corr_in = R * velocityBeforeHoop;
-    dist_corr_fin = R * distanceAfterHoop;
-    vel_corr_fin = R * velocityAfterHoop;
+    double ppX = hoop_pos(0, 2);
+    double ppY = hoop_pos(0, 1);
+    double ppZ = hoop_pos(0, 0);
 
-    MatrixXd p_before_hoop(2, 3);
-    MatrixXd p_before_hoop1(1,3);
-    MatrixXd p_before_hoop2(1,3);
+    if((ppX == 0 && ppY == 0 && ppZ == 0) || (ppX == 0.0 && ppY == 0.0 && ppZ == 0.0)){
+        MatrixXd state = MatrixXd(12, 100);
+        state.setZero();
+        std::cout << state << std::endl;
+    } else {
+        hoop_pos(0, 0) = ppX; //x
+        hoop_pos(0, 1) = ppY; //y
+        hoop_pos(0, 2) = ppZ; //z
+        std::cout << hoop_pos << std::endl;
+        distanceBeforeHoop << 0, d_before, 0;
+        velocityBeforeHoop << 0, v_in, 0;
 
-    p_before_hoop1 << hoop_pos - dist_corr_in.transpose();
-    p_before_hoop2 << vel_corr_in.transpose();
-    p_before_hoop << p_before_hoop1 , p_before_hoop2;
+        R << cos(orientation), sin(orientation), 0, -sin(orientation), cos(orientation), 0, 0, 0, 1;
+        dist_corr_in = R * distanceBeforeHoop;
+        vel_corr_in = R * velocityBeforeHoop;
+        dist_corr_fin = R * distanceAfterHoop;
+        vel_corr_fin = R * velocityAfterHoop;
 
-    MatrixXd final(3, 3);
-    MatrixXd final1(1, 3);
-    MatrixXd final2(1, 3);
-    final1 << hoop_pos + dist_corr_fin.transpose();
-    final2 << vel_corr_fin.transpose();
-    final << final1, final2, 0, 0, 0;
+        MatrixXd p_before_hoop(2, 3);
+        MatrixXd p_before_hoop1(1, 3);
+        MatrixXd p_before_hoop2(1, 3);
 
-    double yaw0 = 0;
-    double hoop_orient = orientation;
-    MatrixXd r = Dimention3(init, p_before_hoop, final, hoop_pos, yaw0, hoop_orient);
+        p_before_hoop1 << hoop_pos - dist_corr_in.transpose();
+        p_before_hoop2 << vel_corr_in.transpose();
+        p_before_hoop << p_before_hoop1, p_before_hoop2;
+
+        MatrixXd final(3, 3);
+        MatrixXd final1(1, 3);
+        MatrixXd final2(1, 3);
+        final1 << hoop_pos + dist_corr_fin.transpose();
+        final2 << vel_corr_fin.transpose();
+        final << final1, final2, 0, 0, 0;
+
+        double yaw0 = 0;
+        double hoop_orient = orientation;
+        MatrixXd r = Dimention3(init, p_before_hoop, final, hoop_pos, yaw0, hoop_orient);
 //    std::cout << "Planned path (r) has:" << std::endl;
 //    std::cout << r.rows() << " rows;" << std::endl;
 //    std::cout << r.cols() << " cols;" << std::endl;
