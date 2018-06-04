@@ -725,9 +725,8 @@ MatrixXd executePathPlanner() {
     double ppZ = hoop_pos(0, 0);
 
     if((ppX == 0 && ppY == 0 && ppZ == 0) || (ppX == 0.0 && ppY == 0.0 && ppZ == 0.0)){
-        MatrixXd state = MatrixXd(12, 100);
-        state.setZero();
-        std::cout << state << std::endl;
+        MatrixXd r = MatrixXd(12, 100);
+        r.setZero();
     } else {
         hoop_pos(0, 0) = ppX; //x
         hoop_pos(0, 1) = ppY; //y
@@ -760,10 +759,11 @@ MatrixXd executePathPlanner() {
         double yaw0 = 0;
         double hoop_orient = orientation;
         MatrixXd r = Dimention3(init, p_before_hoop, final, hoop_pos, yaw0, hoop_orient);
+      }
 //    std::cout << "Planned path (r) has:" << std::endl;
 //    std::cout << r.rows() << " rows;" << std::endl;
 //    std::cout << r.cols() << " cols;" << std::endl;
-    return r;
+      return r;
 }
 
 double* MatrixConversion(MatrixXd m) {
