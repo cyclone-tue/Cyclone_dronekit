@@ -34,11 +34,8 @@ LocationTuples = []
 list_location = []
 # list_velocity = []
 
-# Distance threshold used for the horizon receding control.
-# It is hardcoded to be the distance limit for
-# using the camera to find hoop and compute trajectory.
-# TODO: Replaced by more dynamic approach, e.g. vision/pp returning feedback on whether hoop is visible
-distance_threshold = 0.5
+# Flag for deciding whether to plan the path (if hoop is still in sight).
+path_planning_iteration = True
 
 # First n number of points to cover in the trajectory after every recalculation.
 points_to_cover = 10
@@ -53,19 +50,44 @@ drone.awake_script()
 drone.obtain_home_location()
 drone.set_airspeed(5)
 
-distance_to_hoop = 1024
-while (distance_to_hoop >= 0.5):
+while (path_planning_iteration):
     print "path_planning(): \n"
     trajectory = path_planning()
+    # Reset EKF origin for further computations.
     drone.set_home_location()
+
+    # Record the heading of the drone after resetting EKF origin.
     home_yaw = drone.vehicle.attitude.yaw
+
+    # Define the frame to use (local NED w.r.t. EKF origin).
     frame = mavutil.mavlink.MAV_FRAME_LOCAL_NED
+
+    # Size of the planned path.
     nrow = 100
     ncol = 12
+
+    # Flag for checking whether the hoop is still in sight (if not, computed path are all 0).
+    check_zero = True
     print("Extracting location waypoints from every point in the trajectory...")
     for i in range(nrow):
+        # (x, y, z) waypoints w.r.t. the original position of the drone are parsed at column 0, 4 and 8 of the computed path.
         LocationTuples.append((matrix_index(trajectory, nrow, (i, 0)), matrix_index(
             trajectory, nrow, (i, 4)), matrix_index(trajectory, nrow, (i, 8))))
+
+        # If any of the value of the path is non-zero, change the flag.
+        if (matrix_index(trajectory, nrow, (i, 0)) != 0 or
+                matrix_index(trajectory, nrow, (i, 1)) != 0 or
+                matrix_index(trajectory, nrow, (i, 2)) != 0 or
+                matrix_index(trajectory, nrow, (i, 3)) != 0 or
+                matrix_index(trajectory, nrow, (i, 4)) != 0 or
+                matrix_index(trajectory, nrow, (i, 5)) != 0 or
+                matrix_index(trajectory, nrow, (i, 6)) != 0 or
+                matrix_index(trajectory, nrow, (i, 7)) != 0 or
+                matrix_index(trajectory, nrow, (i, 8)) != 0 or
+                matrix_index(trajectory, nrow, (i, 9)) != 0 or
+                matrix_index(trajectory, nrow, (i, 10)) != 0 or
+                matrix_index(trajectory, nrow, (i, 11)) != 0):
+            check_zero = False
         # VelocityTuples.append((matrix_index(converted, nrow, (i, 3)), matrix_index(
         #     converted, nrow, (i, 4)), matrix_index(converted, nrow, (i, 5))))
 
@@ -73,6 +95,7 @@ while (distance_to_hoop >= 0.5):
     #     list_location.append(drone.local_NED_to_global_NED(*LocationTuples[i]))
         # list_velocity.append(VelocityTuples[i])
     for i in range(nrow):
+        # For all the waypoints recoreded, convert them from local NED w.r.t. the heading of the drone to global NED (rotating axes w.r.t. yaw angle).
         list_location.append(drone.local_NED_to_global_NED(*LocationTuples[i]), home_yaw)
 
     print('Coordinates in local NED of the waypoints (starting at path planning origin):')
@@ -84,16 +107,21 @@ while (distance_to_hoop >= 0.5):
     #     print(drone.global_NED_to_wp(drone.vehicle.location.global_relative_frame, row[0], row[1], row[2]))
 
     for i in range(points_to_cover):
+        # Given the global NED waypoints w.r.t. the home location (EKF origin), navigate the drone by specifying the frame.
         print('Goto ({}, {}, {})'.format(list_location[i]))
         drone.goto_local_NED(list_location[i][0], list_location[i][1], list_location[i][2], frame)
         # if i == 0:
         #     drone.goto_global_NED(*list_location[i])
         # else:
         #     drone.goto_global_NED(list_location[i][0] - list_location[i-1][0], list_location[i][1] - list_location[i-1][1], list_location[i][2] - list_location[i-1][2])
+    # Update the distance of the current position of the drone to the hoop. (1m is the distance of the drone from the hoop originally).
     distance_to_hoop = 1 - drone.distance_covered_along_track(home_yaw)
+
+# When the vision cannot be used anymore, continue the navigation of the most recently computed path.
 for i in range(points_to_cover, len(list_location)):
     print('Goto ({}, {}, {})'.format(list_location[i]))
     drone.goto_local_NED(list_location[i][0], list_location[i][1], list_location[i][2], frame)
+
 # for i in range(len(list_velocity)):
 #     print('Start Mission %d' % (i + 1))
 #     drone.set_velocity_local_NED(*list_velocity[i], 1)
