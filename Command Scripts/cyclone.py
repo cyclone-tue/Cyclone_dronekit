@@ -327,31 +327,6 @@ class Cyclone(object):
         # send command to vehicle
         self.vehicle.send_mavlink(msg)
 
-    def goto_global_NED(self, dNorth, dEast, dDown):
-        """Actuation method for a global NED target.
-        It actuates the drone to fly to a global NED location.
-
-        Args:
-            dNorth: Target position in terms of North to the drone [m]
-            dEast: Target position in terms of East to the drone [m]
-            dDown: Target position in terms of Down to the drone [m]
-        Returns:
-            nothing
-        """
-        startLocation = self.vehicle.location.global_relative_frame
-        targetLocation = self.global_NED_to_wp(startLocation, dNorth, dEast, dDown)
-        targetDistance = self.get_distance_metres(startLocation, targetLocation)
-        self.vehicle.simple_goto(targetLocation)
-
-        while self.vehicle.mode.name == "GUIDED":  # Stop action if we are no longer in guided mode.
-            remainingDistance = self.get_distance_metres(
-                self.vehicle.location.global_relative_frame, targetLocation)
-            print "Distance to target: ", remainingDistance
-            if remainingDistance <= self.distance_threshold:  # Just below target, in case of undershoot.
-                print "Reached target"
-                break
-            time.sleep(self.sleep_time)
-
 
     def set_position_target_global_int(self, aLocation):
         """MAVLink command wrapping method for a navigatiing to a global WGS84 target.
@@ -407,7 +382,7 @@ class Cyclone(object):
         # send command to vehicle
         self.vehicle.send_mavlink(msg)
 
-    def set_velocity_local_NED(self, velocity_x, velocity_y, velocity_z, duration):
+    def set_velocity_local_NED(self, velocity_x, velocity_y, velocity_z, duration, frame=mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED):
         """Actuation method for local NED velocities.
         It actuates the drone to fly to with local NED defined velocities.
 
@@ -416,6 +391,8 @@ class Cyclone(object):
             velocity_y: Linear velocity of the drone in y(to the right) [m/s]
             velocity_z: Linear velocity of the drone in z(down) [m/s]
             duration: Duration for maintaining the velocities [s]
+            frame: frame to use: mavutil.mavlink.MAV_FRAME_LOCAL_NED - relative to home position, mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED relative to current position
+                   mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED - relative to current position with heading, details in http://ardupilot.org/dev/docs/copter-commands-in-guided-mode.html
         Returns:
             nothing
         """
@@ -423,7 +400,7 @@ class Cyclone(object):
             0,       # time_boot_ms (not used)
             0, 0,    # target system, target component
             # frame: velocities relative to the current vehicle position and heading
-            mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED,
+            frame,
             0b0000111111000111,  # type_mask (only speeds enabled)
             0, 0, 0,  # x, y, z positions (not used)
             velocity_x, velocity_y, velocity_z,  # x, y, z velocity in m/s
@@ -435,10 +412,45 @@ class Cyclone(object):
             self.vehicle.send_mavlink(msg)
             time.sleep(1)
 
+    def goto_global_NED(self, dNorth, dEast, dDown, func=None):
+        """Actuation method for a global NED target.
+        It actuates the drone to fly to a global NED location(global North East and Down to the drone).
+
+        Args:
+            dNorth: Target position in terms of North to the drone [m]
+            dEast: Target position in terms of East to the drone [m]
+            dDown: Target position in terms of Down to the drone [m]
+            func: Flag for which MAVLink command to use, None - SET_POSITION_TARGET_GLOBAL_INT or 'mav' - MAV_CMD_NAV_WAYPOINT
+        Returns:
+            nothing
+        """
+        if func is None:
+            startLocation = self.vehicle.location.local_frame
+            targetLocation = LocationLocal(startLocation.north + dNorth, startLocation.east + dEast, startLocation.down + dDown)
+            targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
+            org_yaw = self.vehicle.attitude.yaw
+            self.set_position_target_local_NED(dNorth, dEast, dDown, mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED)
+        elif func == 'mav':
+            startLocation = self.vehicle.location.global_relative_frame
+            targetLocation = self.global_NED_to_wp(startLocation, dNorth, dEast, dDown)
+            targetDistance = self.get_distance_metres(startLocation, targetLocation)
+            self.goto_wp_global(targetLocation)
+
+        while self.vehicle.mode.name == "GUIDED":  # Stop action if we are no longer in guided mode.
+            currentLocation = self.vehicle.location.local_frame
+            # remainingDistance = self.get_distance_metres_EKF(currentLocation, targetLocation)
+            remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation) * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
+            print "Distance to target: ", remainingDistance
+            if remainingDistance <= self.distance_threshold:
+                print "Reached target"
+                break
+            time.sleep(self.sleep_time)
+
+
     def goto_local_NED(self, dNorth, dEast, dDown, frame):
         """Actuation method for a local NED target.
         It actuates the drone to fly to a local NED location.
-
+        TODO: debugging
         Args:
             dNorth: Target position in terms of North(Front) to the drone [m]
             dEast: Target position in terms of East(Right) to the drone [m]
@@ -450,8 +462,9 @@ class Cyclone(object):
         """
         if (frame == mavutil.mavlink.MAV_FRAME_LOCAL_NED):
             startLocation = self.vehicle.location.local_frame
-            targetLocation = LocationLocal(dNorth, dEast, dDown)
             org_yaw = self.vehicle.attitude.yaw
+            global_NED = self.local_NED_to_global_NED(dNorth, dEast, dDown, org_yaw)
+            targetLocation = LocationLocal(startLocation.north + global_NED[0], startLocation.east + global_NED[1], startLocation.down + global_NED[2])
             targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
         else:
             startLocation = self.vehicle.location.global_relative_frame
@@ -470,31 +483,35 @@ class Cyclone(object):
                 break
             time.sleep(self.sleep_time)
 
-    def goto_wp_global(self, targetLocation, func='mav'):
+    def goto_wp_global(self, targetLocation, func=None):
         """Actuation method for global waypoint.
         It actuates the drone to fly to a global waypoint.
+        TODO: the estimation between the current location and the target location is still hacky
 
         Args:
             targetLocation: Target waypoint defined in LocationGlobalRelative
-            func: Flag for which MAVLink command to use, 'mav' - MAV_CMD_NAV_WAYPOINT or 'set' - SET_POSITION_TARGET_GLOBAL_INT
+            func: Flag for which MAVLink command to use, None - SET_POSITION_TARGET_GLOBAL_INT or 'mav' - MAV_CMD_NAV_WAYPOINT
         Returns:
             nothing
         """
         startLocation = self.vehicle.location.global_relative_frame
         targetDistance = self.get_distance_metres(startLocation, targetLocation)
-        if (func == 'mav'):
+        if func is None:
+            self.set_position_target_global_int(targetLocation)
+        elif func == 'mav':
             self.vehicle.simple_goto(targetLocation)
         else:
-            self.set_position_target_global_int(targetLocation)
+            pass
 
-        while self.vehicle.mode.name == "GUIDED":
-            remainingDistance = self.get_distance_metres(
-                self.vehicle.location.global_relative_frame, targetLocation)
-            print "Distance to target: ", remainingDistance
-            if remainingDistance <= self.distance_threshold:
+        while self.vehicle.mode.name == "GUIDED":  # Stop action if we are no longer in guided mode.
+            currentLocation = self.vehicle.location.global_relative_frame
+            print('Approaching target waypoint...')
+            print(currentLocation)
+            if (abs(targetLocation.lat - currentLocation.lat) * 1e7 <= 5) and (abs(targetLocation.lon - currentLocation.lon) * 1e7 <= 5):
                 print "Reached target"
                 break
             time.sleep(self.sleep_time)
+
 
     # Mission Related Functions
 

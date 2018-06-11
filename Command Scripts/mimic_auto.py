@@ -42,6 +42,6 @@ drone.arm_and_takeoff(5)
 drone.set_airspeed(5)
 for i in range(len(listWPs)):
     print('Start Mission %d' % (i + 1))
-    drone.goto_wp_global(LocationGlobalRelative(*listWPs[i]), func='set')
+    drone.goto_wp_global(LocationGlobalRelative(*listWPs[i]))
 # drone.mode_rtl()
 del drone
