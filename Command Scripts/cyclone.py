@@ -28,6 +28,7 @@ class Cyclone(object):
         self.meters_per_degree = configs.meters_per_degree
         self.sleep_time = configs.sleep_time
         self.distance_threshold = configs.distance_threshold
+        self.coordinate_threshold = configs.coordinate_threshold
 
     def __del__(self):
         """Destructor.
@@ -355,7 +356,7 @@ class Cyclone(object):
         # send command to vehicle
         self.vehicle.send_mavlink(msg)
 
-    def set_position_target_local_NED(self, dNorth, dEast, dDown, frame=mavutil.mavlink.MAV_FRAME_LOCAL_NED):
+    def set_position_target_local_NED(self, dNorth, dEast, dDown, frame):
         """Actuation method for a local NED target.
         It actuates the drone to fly to a local NED location.
 
@@ -414,8 +415,9 @@ class Cyclone(object):
 
     def goto_global_NED(self, dNorth, dEast, dDown, func=None):
         """Actuation method for a global NED target.
-        It actuates the drone to fly to a global NED location(global North East and Down to the drone).
+        It actuates the drone to fly to a global NED location(global North East and Down to the drone regardless of the heading).
 
+        TODO: debug: when using set_position_target_local_NED, dEast is not performed
         Args:
             dNorth: Target position in terms of North to the drone [m]
             dEast: Target position in terms of East to the drone [m]
@@ -429,17 +431,20 @@ class Cyclone(object):
             targetLocation = LocationLocal(startLocation.north + dNorth, startLocation.east + dEast, startLocation.down + dDown)
             targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
             org_yaw = self.vehicle.attitude.yaw
-            self.set_position_target_local_NED(dNorth, dEast, dDown, mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED)
+            self.set_position_target_local_NED(dNorth, dEast, dDown, mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED)
         elif func == 'mav':
             startLocation = self.vehicle.location.global_relative_frame
             targetLocation = self.global_NED_to_wp(startLocation, dNorth, dEast, dDown)
             targetDistance = self.get_distance_metres(startLocation, targetLocation)
-            self.goto_wp_global(targetLocation)
+            self.goto_wp_global(targetLocation, func)
 
         while self.vehicle.mode.name == "GUIDED":  # Stop action if we are no longer in guided mode.
             currentLocation = self.vehicle.location.local_frame
             # remainingDistance = self.get_distance_metres_EKF(currentLocation, targetLocation)
-            remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation) * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
+            if func is None:
+                remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation) * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
+            elif func == 'mav':
+                remainingDistance = self.get_distance_metres(currentLocation, targetLocation)
             print "Distance to target: ", remainingDistance
             if remainingDistance <= self.distance_threshold:
                 print "Reached target"
@@ -449,8 +454,8 @@ class Cyclone(object):
 
     def goto_local_NED(self, dNorth, dEast, dDown, frame):
         """Actuation method for a local NED target.
-        It actuates the drone to fly to a local NED location.
-        TODO: debugging
+        It actuates the drone to fly to a local NED location (NED w.r.t. heading of the drone).
+        TODO: debug: when using set_position_target_local_NED, dEast is not performed
         Args:
             dNorth: Target position in terms of North(Front) to the drone [m]
             dEast: Target position in terms of East(Right) to the drone [m]
@@ -460,17 +465,25 @@ class Cyclone(object):
         Returns:
             nothing
         """
-        if (frame == mavutil.mavlink.MAV_FRAME_LOCAL_NED):
+        if (frame == mavutil.mavlink.MAV_FRAME_LOCAL_NED or mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED):
             startLocation = self.vehicle.location.local_frame
             org_yaw = self.vehicle.attitude.yaw
             global_NED = self.local_NED_to_global_NED(dNorth, dEast, dDown, org_yaw)
             targetLocation = LocationLocal(startLocation.north + global_NED[0], startLocation.east + global_NED[1], startLocation.down + global_NED[2])
+            print('targetLocation:')
+            print(targetLocation)
             targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
-        else:
+            self.set_position_target_local_NED(targetLocation.north, targetLocation.east, targetLocation.down, frame)
+
+        elif (frame == mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT):
             startLocation = self.vehicle.location.global_relative_frame
-            targetLocation = self.global_NED_to_wp(startLocation, dNorth, dEast, dDown)
+            org_yaw = self.vehicle.attitude.yaw
+            global_NED = self.local_NED_to_global_NED(dNorth, dEast, dDown, org_yaw)
+            targetLocation = self.global_NED_to_wp(startLocation, global_NED[0], global_NED[1], global_NED[2])
             targetDistance = self.get_distance_metres(startLocation, targetLocation)
-        self.set_position_target_local_NED(dNorth, dEast, dDown, frame)
+            self.set_position_target_global_int(targetLocation)
+
+
 
         while self.vehicle.mode.name == "GUIDED":
             currentLocation = self.vehicle.location.local_frame
@@ -507,7 +520,7 @@ class Cyclone(object):
             currentLocation = self.vehicle.location.global_relative_frame
             print('Approaching target waypoint...')
             print(currentLocation)
-            if (abs(targetLocation.lat - currentLocation.lat) * 1e7 <= 5) and (abs(targetLocation.lon - currentLocation.lon) * 1e7 <= 5):
+            if (abs(targetLocation.lat - currentLocation.lat) * 1e7 <= self.coordinate_threshold) and (abs(targetLocation.lon - currentLocation.lon) * 1e7 <= self.coordinate_threshold):
                 print "Reached target"
                 break
             time.sleep(self.sleep_time)
