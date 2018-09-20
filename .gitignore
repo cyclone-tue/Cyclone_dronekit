@@ -5,3 +5,6 @@ Command Scripts/.idea/modules.xml
 Command Scripts/.idea/workspace.xml
 *.iml
 *.xml
+*.so
+*.pyc
+*.mp4

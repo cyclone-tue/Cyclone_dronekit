@@ -1,0 +1,3 @@
+[submodule "Python-C++ interface/src"]
+	path = Python-C++ interface/src
+	url = https://github.com/cyclone-tue/cyclone-vision

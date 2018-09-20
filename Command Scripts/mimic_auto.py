@@ -33,7 +33,9 @@ sitl = None
 
 if not connection_string:
     import dronekit_sitl
-    sitl = dronekit_sitl.start_default()
+    sitl = dronekit_sitl.SITL()
+    sitl.download("copter" , "3.3")
+    sitl.launch(["--home=51.449,5.493,1,0 --rate 30"], await_ready=True)
     connection_string = sitl.connection_string()
 
 drone = Cyclone(connection_string, configs)
@@ -45,3 +47,6 @@ for i in range(len(listWPs)):
     drone.goto_wp_global(LocationGlobalRelative(*listWPs[i]))
 # drone.mode_rtl()
 del drone
+
+if sitl:
+	sitl.stop()
