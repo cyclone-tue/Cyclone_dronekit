@@ -13,6 +13,9 @@ This step is only necessary if you want to use the vision capabilities of the dr
 * First install the dependencies for the vision code:
   * [OpenCV](https://opencv.org/)
   * [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page)
+* Install the H264 codec by running the following commands
+  * `sudo apt install libdvdnav4 libdvdread4 gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly libdvd-pkg`
+  * `sudo apt install ubuntu-restricted-extras` 
 * Afterwards you should be able to open the Python-C++ interface folder in a terminal and run `./build_dll.sh`. This should output a shared object file into the this directory.
 
 ## Running the python script
