@@ -19,10 +19,10 @@ class flight():
 
 
     def fly(self):
-        drone.awake_script()
+        self.drone.awake_script()
         #drone.arm_and_takeoff(5)
-        drone.obtain_home_location()
-        drone.set_airspeed(5)
+        self.drone.obtain_home_location()
+        self.drone.set_airspeed(5)
         
         remaining_waypoints, frame = self.goToHoop()
         self.followPath(remaining_waypoints, frame)
