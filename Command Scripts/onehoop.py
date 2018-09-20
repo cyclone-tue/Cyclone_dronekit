@@ -41,7 +41,7 @@ def initVision():
     return path_planning
 
 
-def main():
+def main(drone, path_planning):
     
     LocationTuples = []         # Tuples and lists for storing the trajectory information.
     list_location = []
