@@ -18,4 +18,4 @@ This step is only necessary if you want to use the vision capabilities of the dr
 ## Running the python script
 This step involves running a command script either in local simulation or on the drone.
 * Open the Command Scripts folder in a terminal.
-* Run `python <script>.py` where <script> is the name of the script you want to run. This runs the command script in a local simulation. Append `--connect 127.0.0.1` to the script to run it on the drone from the jetson.
+* Run `python <script>.py` where <script> is the name of the script you want to run. This runs the command script in a local simulation. Append `--connect 127.0.0.1:14000` to the script to run it on the drone from the jetson.
