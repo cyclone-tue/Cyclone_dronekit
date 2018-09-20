@@ -24,7 +24,7 @@ drone = Cyclone(connection_string, configs)
 # Import compiled library of vision and pathplanning.
 import ctypes
 so = ctypes.cdll.LoadLibrary
-lib = so("../Python-C++ interface/test.so")
+lib = so("../Python-C++ interface/libcpp_py_vision.so")
 path_planning = lib.output_to_py
 path_planning.restype = ctypes.POINTER(ctypes.c_double)
 
