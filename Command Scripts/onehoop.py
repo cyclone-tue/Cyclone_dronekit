@@ -5,13 +5,6 @@ from dronekit import LocationGlobalRelative, LocationGlobal
 import argparse
 
 
-if __name__ == "__main__":
-    myFlight = flight()
-    myFlight.fly()
-    myFlight.end()
-    del myFlight
-
-
 class flight():
     def __init__():
         self.drone = flight.getDrone()
@@ -117,4 +110,10 @@ class flight():
 def matrix_index(a, rowsize, (m, n)):
     return(a[rowsize * n + m])
 
+
+if __name__ == "__main__":
+    myFlight = flight()
+    myFlight.fly()
+    myFlight.end()
+    del myFlight
 
