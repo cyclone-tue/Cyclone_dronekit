@@ -80,10 +80,10 @@ class flight():
 
             
             # check whether hoop is in sight
-            path_planning_iteration = True           # Flag for checking whether the hoop is still in sight (if not, computed path are all 0).
+            path_planning_iteration = False           # Flag for checking whether the hoop is still in sight (if not, computed path are all 0).
             for item in trajectory:
                 if item != 0:
-                    path_planning_iteration = False
+                    path_planning_iteration = True
                     break
             else:
                 continue
