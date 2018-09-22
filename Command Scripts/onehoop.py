@@ -96,7 +96,7 @@ while (path_planning_iteration):
         # list_velocity.append(VelocityTuples[i])
     for i in range(nrow):
         # For all the waypoints recoreded, convert them from local NED w.r.t. the heading of the drone to global NED (rotating axes w.r.t. yaw angle).
-        list_location.append(drone.local_NED_to_global_NED(*LocationTuples[i]), home_yaw)
+        list_location.append(drone.local_NED_to_global_NED(*LocationTuples[i], yaw=home_yaw))
 
     print('Coordinates in local NED of the waypoints (starting at path planning origin):')
     for row in list_location:
@@ -108,7 +108,7 @@ while (path_planning_iteration):
 
     for i in range(points_to_cover):
         # Given the global NED waypoints w.r.t. the home location (EKF origin), navigate the drone by specifying the frame.
-        print('Goto ({}, {}, {})'.format(list_location[i]))
+        print('Goto ({})'.format(list_location[i]))
         drone.goto_local_NED(list_location[i][0], list_location[i][1], list_location[i][2], frame)
         # if i == 0:
         #     drone.goto_global_NED(*list_location[i])

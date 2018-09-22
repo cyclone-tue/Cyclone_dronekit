@@ -9,3 +9,6 @@ Command Scripts/.idea/workspace.xml
 *.pyc
 *.mp4
 Python-C\+\+ interface/src
+release
+cmake-build-debug/
+venv/

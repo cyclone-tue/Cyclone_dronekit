@@ -304,7 +304,7 @@ Mat removeBG(Mat& input, Mat& frame) {
 
 
 
-    else cout << "Unable to open file";
+    else cout << "Unable to open file" << "./junk.txt" << endl;
 
     inRange(frame,Scalar(low_v, low_s, low_h), Scalar(high_v, high_s, high_h),junk);
 
@@ -375,7 +375,7 @@ Mat threshold(Mat& input, string file) {
         myfile.close();
     }
 
-    else cout << "Unable to open file";
+    else cout << "Unable to open file " << file.c_str() << endl;
     cv::cvtColor( input, output, cv::COLOR_BGR2HSV );
     //thresholding command
     inRange(input,Scalar(low_h, low_s, low_v), Scalar(high_h, high_s, high_v),output);
@@ -571,7 +571,7 @@ MatrixXd executeVision() {
     //            videoconvert ! video/x-raw, format=(string)BGR ! \
     //            appsink";
 
-    VideoCapture cap("./video2.mp4");
+    VideoCapture cap(0);
     //VideoCapture cap(1);
     //
     //    cap.set(CV_CAP_PROP_FRAME_WIDTH,640);
@@ -773,6 +773,10 @@ double* MatrixConversion(MatrixXd m) {
 //    cout <<  m  << endl;
     Map<MatrixXd>(&db_array[0][0], m.rows(), m.cols()) = m;
     return &db_array[0][0];
+}
+
+int main(){
+    executePathPlanner();
 }
 
 extern "C" {
