@@ -21,8 +21,9 @@ class Cyclone(object):
         Returns:
             nothing
         """
+        print("Connecting to vehicle using: " + connection_string )
         self.vehicle = connect(connection_string, wait_ready=True)
-        print "Connected to the vehicle..."
+        print("Connected to the vehicle...")
         self.doPause = False
         self.earth_radius = configs.earth_radius
         self.meters_per_degree = configs.meters_per_degree
@@ -77,7 +78,7 @@ class Cyclone(object):
         """
         self.vehicle.mode = VehicleMode("GUIDED")
         while not self.vehicle.mode.name == 'GUIDED':
-            print "Changing into GUIDED mode"
+            print("Changing into GUIDED mode")
             time.sleep(self.sleep_time)
 
     def mode_auto(self):
@@ -91,7 +92,7 @@ class Cyclone(object):
         """
         self.vehicle.mode = VehicleMode("AUTO")
         while not self.vehicle.mode.name == 'AUTO':
-            print "Switching to AUTO mode..."
+            print("Switching to AUTO mode...")
             time.sleep(self.sleep_time)
 
     def mode_rtl(self):
@@ -118,16 +119,16 @@ class Cyclone(object):
             nothing
         """
         while not self.vehicle.is_armable:
-            print "Waiting for vehicle to initialise..."
+            print("Waiting for vehicle to initialise...")
             time.sleep(self.sleep_time)
 
-        print "Drone is armable, please arm the drone."
+        print("Drone is armable, please arm the drone.")
 
         while not self.vehicle.armed:
-            print "Waiting for arming the drone"
+            print("Waiting for arming the drone")
             time.sleep(self.sleep_time)
 
-        print "Drone is armed."
+        print("Drone is armed.")
 
     def awake_script(self):
         """Wakes up the script.
@@ -140,7 +141,7 @@ class Cyclone(object):
             nothing
         """
         while not self.vehicle.mode.name == 'GUIDED':
-            print "(Main): Switch to GUIDED mode to awake the script"
+            print("(Main): Switch to GUIDED mode to awake the script")
             time.sleep(self.sleep_time)
 
     def pause(self):
@@ -278,26 +279,26 @@ class Cyclone(object):
         Returns:
             nothing
         """
-        print "Basic pre-arm checks"
+        print("Basic pre-arm checks")
         while not self.vehicle.is_armable:
-            print " Waiting for vehicle to initialise..."
+            print(" Waiting for vehicle to initialise...")
             time.sleep(self.sleep_time)
 
-        print "Arming motors"
+        print("Arming motors")
         self.vehicle.mode = VehicleMode("GUIDED")
         self.vehicle.armed = True
 
         while not self.vehicle.armed:
-            print " Waiting for arming..."
+            print(" Waiting for arming...")
             time.sleep(self.sleep_time)
 
-        print "Taking off!"
+        print("Taking off!")
         self.vehicle.simple_takeoff(aTargetAltitude)  # Take off to target altitude
 
         while True:
-            print " Altitude: ", self.vehicle.location.global_relative_frame.alt
+            print(" Altitude: ", self.vehicle.location.global_relative_frame.alt)
             if self.vehicle.location.global_relative_frame.alt >= aTargetAltitude*0.95:
-                print "Reached target altitude"
+                print("Reached target altitude")
                 break
             time.sleep(self.sleep_time)
 
@@ -445,9 +446,9 @@ class Cyclone(object):
                 remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation) * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
             elif func == 'mav':
                 remainingDistance = self.get_distance_metres(currentLocation, targetLocation)
-            print "Distance to target: ", remainingDistance
+            print("Distance to target: ", remainingDistance)
             if remainingDistance <= self.distance_threshold:
-                print "Reached target"
+                print("Reached target")
                 break
             time.sleep(self.sleep_time)
 
@@ -490,9 +491,9 @@ class Cyclone(object):
             # remainingDistance = self.get_distance_metres(self.vehicle.location.global_relative_frame, targetLocation)
             # remainingDistance is the distance covered along the straight path from the startLocation of this navigation.
             remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation) * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
-            print "Distance to target: ", remainingDistance
+            print("Distance to target: ", remainingDistance)
             if remainingDistance <= self.distance_threshold:
-                print "Reached target"
+                print("Reached target")
                 break
             time.sleep(self.sleep_time)
 
@@ -521,7 +522,7 @@ class Cyclone(object):
             print('Approaching target waypoint...')
             print(currentLocation)
             if (abs(targetLocation.lat - currentLocation.lat) * 1e7 <= self.coordinate_threshold) and (abs(targetLocation.lon - currentLocation.lon) * 1e7 <= self.coordinate_threshold):
-                print "Reached target"
+                print("Reached target")
                 break
             time.sleep(self.sleep_time)
 

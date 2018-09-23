@@ -37,7 +37,10 @@ class flight():
         #sitl = None
         if not connection_string:
             import dronekit_sitl
-            sitl = dronekit_sitl.start_default()
+            sitl = dronekit_sitl.SITL()
+            sitl.download("copter", "3.3")
+            sitl.launch(["--home=51.449,5.492,1,0 -- rate 30"], await_ready=True)
+            # sitl.block_until_ready(verbose=True)
             connection_string = sitl.connection_string()
 
         return Cyclone(connection_string, configs)    
@@ -86,10 +89,10 @@ class flight():
             LocationTuples = []
             for i in range(nrow):
                 # (x, y, z) waypoints w.r.t. the original position of the drone are parsed at column 0, 4 and 8 of the computed path.
-                LocationTuples.append((matrix_index(trajectory, ncol, (i, 0)), matrix_index(
-                    trajectory, ncol, (i, 4)), matrix_index(trajectory, ncol, (i, 8))))
+                LocationTuples.append((matrix_index(trajectory, ncol, i, 0), matrix_index(
+                    trajectory, ncol, i, 4), matrix_index(trajectory, ncol, i, 8)))
                 # For all the waypoints recoreded, convert them from local NED w.r.t. the heading of the drone to global NED (rotating axes w.r.t. yaw angle).    
-                list_location.append(self.drone.local_NED_to_global_NED(*LocationTuples[i]), home_yaw)
+                list_location.append(self.drone.local_NED_to_global_NED(*LocationTuples[i], yaw=home_yaw))
                 
             # fly through first few waypoints
             self.followPath(list_location[:points_to_cover], frame)
@@ -100,14 +103,14 @@ class flight():
     def followPath(self, list_location, frame):
         for i in range(0, len(list_location)):
             # Given the global NED waypoints w.r.t. the home location (EKF origin), navigate the drone by specifying the frame.
-            print('Goto ({}, {}, {})'.format(list_location[i]))
+            print('Goto ({}, {}, {})'.format(list_location[i][0], list_location[i][1], list_location[i][2]))
             self.drone.goto_local_NED(list_location[i][0], list_location[i][1], list_location[i][2], frame)  #waits until target is reached
         return
 
 
 
 # Method for matrix indexing.
-def matrix_index(a, rowsize, (m, n)):
+def matrix_index(a, rowsize, m, n):
     return(a[rowsize * n + m])
 
 
