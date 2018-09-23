@@ -13,7 +13,7 @@ class flight():
 
     def fly(self):
         #self.drone.awake_script()
-        #drone.arm_and_takeoff(5)
+        self.drone.arm_and_takeoff(5)
         self.drone.obtain_home_location()
         self.drone.set_airspeed(5)
         
@@ -37,9 +37,10 @@ class flight():
         #sitl = None
         if not connection_string:
             import dronekit_sitl
-            sitl = dronekit_sitl.SITL()
-            sitl.download("copter", "3.3")
-            sitl.launch(["--home=51.449,5.492,1,0 -- rate 30"], await_ready=True)
+            sitl = dronekit_sitl.start_default(51.449,5.492)
+            #sitl = dronekit_sitl.SITL()
+            #sitl.download("copter", "3.3")
+            #sitl.launch(["--home=51.449,5.492,1,0 -- rate 30"], await_ready=True)
             # sitl.block_until_ready(verbose=True)
             connection_string = sitl.connection_string()
 

@@ -468,11 +468,11 @@ class Cyclone(object):
         """
         if (frame == mavutil.mavlink.MAV_FRAME_LOCAL_NED or mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED):
             startLocation = self.vehicle.location.local_frame
+            print("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
             org_yaw = self.vehicle.attitude.yaw
             global_NED = self.local_NED_to_global_NED(dNorth, dEast, dDown, org_yaw)
             targetLocation = LocationLocal(startLocation.north + global_NED[0], startLocation.east + global_NED[1], startLocation.down + global_NED[2])
-            print('targetLocation:')
-            print(targetLocation)
+            print('targetLocation: {}, {}, {}'.format(targetLocation.north, targetLocation.east, targetLocation.down))
             targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
             self.set_position_target_local_NED(targetLocation.north, targetLocation.east, targetLocation.down, frame)
 
@@ -491,7 +491,7 @@ class Cyclone(object):
             # remainingDistance = self.get_distance_metres(self.vehicle.location.global_relative_frame, targetLocation)
             # remainingDistance is the distance covered along the straight path from the startLocation of this navigation.
             remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation) * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
-            print("Distance to target: ", remainingDistance)
+            print("Distance to target: {}".format(remainingDistance))
             if remainingDistance <= self.distance_threshold:
                 print("Reached target")
                 break
