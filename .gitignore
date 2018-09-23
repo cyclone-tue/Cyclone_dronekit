@@ -5,3 +5,8 @@ Command Scripts/.idea/modules.xml
 Command Scripts/.idea/workspace.xml
 *.iml
 *.xml
+cmake-build-debug/
+__pycache__/
+*.so
+release/
+venv/

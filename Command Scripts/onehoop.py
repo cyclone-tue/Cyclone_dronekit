@@ -6,13 +6,13 @@ import argparse
 
 
 class flight():
-    def __init__():
-        self.drone = flight.getDrone()
-        self.path_planning = flight.initVision()
+    def __init__(self):
+        self.drone = self.getDrone()
+        self.path_planning = self.initVision()
 
 
     def fly(self):
-        self.drone.awake_script()
+        #self.drone.awake_script()
         #drone.arm_and_takeoff(5)
         self.drone.obtain_home_location()
         self.drone.set_airspeed(5)
@@ -25,7 +25,7 @@ class flight():
         del self.drone
 
 
-    def getDrone():
+    def getDrone(self):
         parser = argparse.ArgumentParser(
             description='Print out vehicle state information. Connects to SITL on local PC by default.')
         parser.add_argument(
@@ -43,7 +43,7 @@ class flight():
         return Cyclone(connection_string, configs)    
 
 
-    def initVision():
+    def initVision(self):
         import ctypes       # Import compiled library of vision and pathplanning.
         so = ctypes.cdll.LoadLibrary
         lib = so("../Python-C++ interface/libcpp_py_vision.so")
