@@ -50,7 +50,9 @@ class flight():
     def initVision(self):
         import ctypes       # Import compiled library of vision and pathplanning.
         so = ctypes.cdll.LoadLibrary
-        lib = so("../Python-C++ interface/libcpp_py_vision.so")
+        lib = so("../Python-C++ interface/buid/libCycloneVision.so")
+        setup = lib.setupVariables
+        setup(0,'./laptop_calibration.txt')
         path_planning = lib.output_to_py
         path_planning.restype = ctypes.POINTER(ctypes.c_double)
         return path_planning

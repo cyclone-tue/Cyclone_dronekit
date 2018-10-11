@@ -13,3 +13,5 @@ cmake-build-debug/
 venv/
 angles2.txt
 __pycach__/
+
+Python-C\+\+ interface/build/
