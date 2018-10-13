@@ -87,9 +87,9 @@ class flight():
                 list_location = []
                 LocationTuples = []
                 for i in range(nrow):
-                    # (x, y, z) waypoints w.r.t. the original position of the drone are parsed at column 0, 4 and 8 of the computed path.
-                    LocationTuples.append((matrix_index(trajectory, ncol, i, 0), matrix_index(
-                        trajectory, ncol, i, 4), matrix_index(trajectory, ncol, i, 8)))
+                    # (x, y, z) waypoints w.r.t. the original position of the drone are parsed at column 0, 4 and 8 of the computed path. North is in the z direction, east is in the x direction and down is in the y direction.
+                    LocationTuples.append((matrix_index(trajectory, ncol, i, 8), matrix_index(
+                        trajectory, ncol, i, 0), matrix_index(trajectory, ncol, i, 4)))
                     # For all the waypoints recoreded, convert them from local NED w.r.t. the heading of the drone to global NED (rotating axes w.r.t. yaw angle).
                     list_location.append(self.drone.local_NED_to_global_NED(*LocationTuples[i], yaw=home_yaw))
                 self.followPath(list_location[:points_to_cover], frame)
@@ -99,6 +99,7 @@ class flight():
                 if len(list_location) > 0:
                     print("Following previous path and exiting")
                     self.followPath(list_location[:points_to_cover], frame)
+                    list_location = list_location[points_to_cover:]
                     path_planning_iteration = foundPath
             # fly through first few waypoints
 
