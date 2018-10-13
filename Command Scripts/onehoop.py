@@ -2,19 +2,21 @@ import configs
 from pymavlink import mavutil
 from cyclone import Cyclone
 import ctypes
-from dronekit import LocationGlobalRelative, LocationGlobal
 import argparse
 
 
 class flight():
     def __init__(self):
+        self.simulation = False
         self.drone = self.getDrone()
         self.path_planning = self.initVision()
 
 
     def fly(self):
-        #self.drone.awake_script()
-        self.drone.arm_and_takeoff(5)
+        if self.simulation:
+            self.drone.arm_and_takeoff(5)
+        else:
+            self.drone.awake_script()
         self.drone.obtain_home_location()
         self.drone.set_airspeed(5)
         
@@ -44,6 +46,7 @@ class flight():
             #sitl.launch(["--home=51.449,5.492,1,0 -- rate 30"], await_ready=True)
             # sitl.block_until_ready(verbose=True)
             connection_string = sitl.connection_string()
+            self.simulation = True
 
         return Cyclone(connection_string, configs)
 
