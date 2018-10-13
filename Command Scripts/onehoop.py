@@ -1,6 +1,7 @@
 import configs
 from pymavlink import mavutil
 from cyclone import Cyclone
+import ctypes
 from dronekit import LocationGlobalRelative, LocationGlobal
 import argparse
 
@@ -37,22 +38,24 @@ class flight():
         #sitl = None
         if not connection_string:
             import dronekit_sitl
-            sitl = dronekit_sitl.start_default(51.449,5.492)
+            sitl = dronekit_sitl.start_default(51.449, 5.492)
             #sitl = dronekit_sitl.SITL()
             #sitl.download("copter", "3.3")
             #sitl.launch(["--home=51.449,5.492,1,0 -- rate 30"], await_ready=True)
             # sitl.block_until_ready(verbose=True)
             connection_string = sitl.connection_string()
 
-        return Cyclone(connection_string, configs)    
+        return Cyclone(connection_string, configs)
 
 
     def initVision(self):
-        import ctypes       # Import compiled library of vision and pathplanning.
+        # Import compiled library of vision and pathplanning.
         so = ctypes.cdll.LoadLibrary
-        lib = so("../Python-C++ interface/buid/libCycloneVision.so")
+        lib = so("../Python-C++ interface/libCycloneVision.so")
+        print("Loaded library")
         setup = lib.setupVariables
-        setup(0,'./laptop_calibration.txt')
+        setup(0, "../Python-C++ interface/marker/laptop_calibration.txt")
+        print("Ran setup")
         path_planning = lib.output_to_py
         path_planning.restype = ctypes.POINTER(ctypes.c_double)
         return path_planning
@@ -64,12 +67,14 @@ class flight():
 
 
         path_planning_iteration = True      # Flag for deciding whether to plan the path (if hoop is still in sight).
-        
+
+        list_location = []      # Tuples and lists for storing the trajectory information.
         while path_planning_iteration:
 
-            list_location = []      # Tuples and lists for storing the trajectory information.
-            
-            trajectory = self.path_planning()
+            foundPath = ctypes.c_bool() # is set to true if a path is found, false otherwise
+            visualize = ctypes.c_bool(True) # True if the pathplanning should be visualized using opencv. This can be used for debug purposes.
+
+            trajectory = self.path_planning(ctypes.pointer(foundPath), visualize)
             nrow = 100      # Size of the planned path.
             ncol = 12
             
@@ -77,28 +82,38 @@ class flight():
             home_yaw = self.drone.vehicle.attitude.yaw      # Record the heading of the drone after resetting EKF origin.
             frame = mavutil.mavlink.MAV_FRAME_LOCAL_NED     # Define the frame to use (local NED w.r.t. EKF origin).
 
-            
-            # check whether hoop is in sight
-            path_planning_iteration = False           # Flag for checking whether the hoop is still in sight (if not, computed path are all 0).
-            for item in trajectory:
-                if item != 0:
-                    path_planning_iteration = True
-                    break
+            if foundPath:
+                print("Found path")
+                list_location = []
+                LocationTuples = []
+                for i in range(nrow):
+                    # (x, y, z) waypoints w.r.t. the original position of the drone are parsed at column 0, 4 and 8 of the computed path.
+                    LocationTuples.append((matrix_index(trajectory, ncol, i, 0), matrix_index(
+                        trajectory, ncol, i, 4), matrix_index(trajectory, ncol, i, 8)))
+                    # For all the waypoints recoreded, convert them from local NED w.r.t. the heading of the drone to global NED (rotating axes w.r.t. yaw angle).
+                    list_location.append(self.drone.local_NED_to_global_NED(*LocationTuples[i], yaw=home_yaw))
+                self.followPath(list_location[:points_to_cover], frame)
+                list_location = list_location[points_to_cover:]
             else:
-                continue
+                print("Could not find path")
+                if len(list_location) > 0:
+                    print("Following previous path and exiting")
+                    self.followPath(list_location[:points_to_cover], frame)
+                    path_planning_iteration = foundPath
+            # fly through first few waypoints
+
+            # check whether hoop is in sight
+            #path_planning_iteration = False           # Flag for checking whether the hoop is still in sight (if not, computed path are all 0).
+            #for item in trajectory:
+            #    if item != 0:
+            #        path_planning_iteration = True
+            #        break
+            #else:
+            #    continue
 
 
             # extract waypoints from trajectory
-            LocationTuples = []
-            for i in range(nrow):
-                # (x, y, z) waypoints w.r.t. the original position of the drone are parsed at column 0, 4 and 8 of the computed path.
-                LocationTuples.append((matrix_index(trajectory, ncol, i, 0), matrix_index(
-                    trajectory, ncol, i, 4), matrix_index(trajectory, ncol, i, 8)))
-                # For all the waypoints recoreded, convert them from local NED w.r.t. the heading of the drone to global NED (rotating axes w.r.t. yaw angle).    
-                list_location.append(self.drone.local_NED_to_global_NED(*LocationTuples[i], yaw=home_yaw))
-                
-            # fly through first few waypoints
-            self.followPath(list_location[:points_to_cover], frame)
+
       
         return [list_location, frame]
 
@@ -106,6 +121,7 @@ class flight():
     def followPath(self, list_location, frame):
         for i in range(0, len(list_location)):
             # Given the global NED waypoints w.r.t. the home location (EKF origin), navigate the drone by specifying the frame.
+            print("Point {} out of {}".format(i, len(list_location)))
             print('Goto ({}, {}, {})'.format(list_location[i][0], list_location[i][1], list_location[i][2]))
             self.drone.goto_local_NED(list_location[i][0], list_location[i][1], list_location[i][2], frame)  #waits until target is reached
         return
