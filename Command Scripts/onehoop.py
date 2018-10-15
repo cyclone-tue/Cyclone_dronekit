@@ -57,8 +57,13 @@ class flight():
         lib = so("../Python-C++ interface/libCycloneVision.so")
         print("Loaded library")
         setup = lib.setupVariables
-        setup(0, "../Python-C++ interface/marker/laptop_calibration.txt")
-        print("Ran setup")
+        if self.simulation:
+            setup(0, "../Python-C++ interface/marker/laptop_calibration.txt")
+            print("Ran setup using {} and {}".format(0, "../Python-C++ interface/marker/laptop_calibration.txt"))
+        else:
+            setup(0, "../Python-C++ interface/marker/drone_calibration.txt")
+            print("Ran setup using {} and {}".format(0, "../Python-C++ interface/marker/drone_calibration.txt"))
+
         path_planning = lib.output_to_py
         path_planning.restype = ctypes.POINTER(ctypes.c_double)
         return path_planning
@@ -81,11 +86,12 @@ class flight():
             nrow = 100      # Size of the planned path.
             ncol = 12
             
-            self.drone.set_home_location()                  # Reset EKF origin for further computations.
-            home_yaw = self.drone.vehicle.attitude.yaw      # Record the heading of the drone after resetting EKF origin.
-            frame = mavutil.mavlink.MAV_FRAME_LOCAL_NED     # Define the frame to use (local NED w.r.t. EKF origin).
+
 
             if foundPath:
+                self.drone.set_home_location()                  # Reset EKF origin for further computations.
+                home_yaw = self.drone.vehicle.attitude.yaw      # Record the heading of the drone after resetting EKF origin.
+                frame = mavutil.mavlink.MAV_FRAME_LOCAL_NED     # Define the frame to use (local NED w.r.t. EKF origin).
                 print("Found path")
                 list_location = []
                 LocationTuples = []
