@@ -7,9 +7,18 @@ import argparse
 
 class flight():
     def __init__(self):
+        parser = argparse.ArgumentParser(
+            description='Print out vehicle state information. Connects to SITL on local PC by default.')
+        parser.add_argument(
+            '--connect', help="vehicle connection target string. If not specified, SITL automatically started and used.")
+
+        args = parser.parse_args()
         self.simulation = False
-        self.drone = self.getDrone()
+        if not args.connect:
+            self.simulation = True
         self.path_planning = self.initVision()
+        self.drone = self.getDrone(args)
+
 
 
     def fly(self):
@@ -28,13 +37,8 @@ class flight():
         del self.drone
 
 
-    def getDrone(self):
-        parser = argparse.ArgumentParser(
-            description='Print out vehicle state information. Connects to SITL on local PC by default.')
-        parser.add_argument(
-            '--connect', help="vehicle connection target string. If not specified, SITL automatically started and used.")
+    def getDrone(self, args):
 
-        args = parser.parse_args()
         connection_string = args.connect
 
         #sitl = None
@@ -46,7 +50,6 @@ class flight():
             #sitl.launch(["--home=51.449,5.492,1,0 -- rate 30"], await_ready=True)
             # sitl.block_until_ready(verbose=True)
             connection_string = sitl.connection_string()
-            self.simulation = True
 
         return Cyclone(connection_string, configs)
 
@@ -80,7 +83,7 @@ class flight():
         while path_planning_iteration:
 
             foundPath = ctypes.c_bool() # is set to true if a path is found, false otherwise
-            visualize = ctypes.c_bool(True) # True if the pathplanning should be visualized using opencv. This can be used for debug purposes.
+            visualize = ctypes.c_bool(self.simulation) # True if the pathplanning should be visualized using opencv. This can be used for debug purposes.
 
             trajectory = self.path_planning(ctypes.pointer(foundPath), visualize)
             nrow = 100      # Size of the planned path.
