@@ -73,6 +73,7 @@ class flight():
 
 
     def goToHoop(self):
+        print("Looking for path")
         
         points_to_cover = 10        # First n number of points to cover in the trajectory after every recalculation.
 
