@@ -1,3 +1,5 @@
+from dronekit import LocationGlobalRelative
+
 import configs
 from pymavlink import mavutil
 from cyclone import Cyclone
@@ -81,6 +83,7 @@ class flight():
         path_planning_iteration = True      # Flag for deciding whether to plan the path (if hoop is still in sight).
 
         list_location = []      # Tuples and lists for storing the trajectory information.
+        #startPosition = (0, 0, 0) # The position from which the path planning was calculated. All positions from the path are relative to this point.
         while path_planning_iteration:
 
             foundPath = ctypes.c_bool() # is set to true if a path is found, false otherwise
@@ -96,6 +99,8 @@ class flight():
                 self.drone.set_home_location()                  # Reset EKF origin for further computations.
                 home_yaw = self.drone.vehicle.attitude.yaw      # Record the heading of the drone after resetting EKF origin.
                 frame = mavutil.mavlink.MAV_FRAME_LOCAL_NED     # Define the frame to use (local NED w.r.t. EKF origin).
+                #startPosition = self.drone.vehicle.location.local_frame
+                #print(startPosition)
                 print("Found path")
                 list_location = []
                 LocationTuples = []
@@ -104,7 +109,10 @@ class flight():
                     LocationTuples.append((matrix_index(trajectory, ncol, i, 8), matrix_index(
                         trajectory, ncol, i, 0), matrix_index(trajectory, ncol, i, 4)))
                     # For all the waypoints recoreded, convert them from local NED w.r.t. the heading of the drone to global NED (rotating axes w.r.t. yaw angle).
-                    list_location.append(self.drone.local_NED_to_global_NED(*LocationTuples[i], yaw=home_yaw))
+                    # list_location.append(self.drone.local_NED_to_global_NED(*LocationTuples[i], yaw=home_yaw))
+                    list_location = LocationTuples
+
+
                 self.followPath(list_location[:points_to_cover], frame)
                 list_location = list_location[points_to_cover:]
             else:
@@ -135,9 +143,15 @@ class flight():
     def followPath(self, list_location, frame):
         for i in range(0, len(list_location)):
             # Given the global NED waypoints w.r.t. the home location (EKF origin), navigate the drone by specifying the frame.
+
+            #self.drone.goto_local_NED(list_location[i][0], list_location[i][1], list_location[i][2], frame)  #waits until target is reached
+            # Offset calculation for positions
+            dNorth = list_location[i][0]# - (self.drone.vehicle.location.local_frame.north - startPosition.north)
+            dEast = list_location[i][1]# - (self.drone.vehicle.location.local_frame.east - startPosition.east)
+            dDown = list_location[i][2]# - (self.drone.vehicle.location.local_frame.down - startPosition.down)
             print("Point {} out of {}".format(i, len(list_location)))
-            print('Goto ({}, {}, {})'.format(list_location[i][0], list_location[i][1], list_location[i][2]))
-            self.drone.goto_local_NED(list_location[i][0], list_location[i][1], list_location[i][2], frame)  #waits until target is reached
+            print('Goto ({}, {}, {})'.format(dNorth, dEast, dDown))
+            self.drone.goto_local_NED(dNorth, dEast, dDown, frame) # Waits until target is reached
         return
 
 
