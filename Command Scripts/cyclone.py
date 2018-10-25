@@ -30,6 +30,7 @@ class Cyclone(object):
         self.sleep_time = configs.sleep_time
         self.distance_threshold = configs.distance_threshold
         self.coordinate_threshold = configs.coordinate_threshold
+        self.local_home = LocationLocal(0, 0, 0)
 
     def __del__(self):
         """Destructor.
@@ -179,6 +180,7 @@ class Cyclone(object):
     def set_home_location(self):
         """Define the current location of the drone as the home location."""
         self.vehicle.home_location = self.vehicle.location.global_frame
+        self.local_home = self.vehicle.location.local_frame
 
     # Location/Distance estimations
 
@@ -221,8 +223,8 @@ class Cyclone(object):
         """
         dNorth = aLocation2.north - aLocation1.north
         dEast = aLocation2.east - aLocation1.east
-        # dDown = aLocation2.down - aLocation1.down
-        return math.sqrt(dNorth**2 + dEast**2)
+        dDown = aLocation2.down - aLocation1.down
+        return math.sqrt(dNorth**2 + dEast**2 + dDown**2)
 
 
     def get_distance_metres(self, aLocation1, aLocation2):
@@ -438,15 +440,16 @@ class Cyclone(object):
             targetLocation = self.global_NED_to_wp(startLocation, dNorth, dEast, dDown)
             targetDistance = self.get_distance_metres(startLocation, targetLocation)
             self.goto_wp_global(targetLocation, func)
-
+        print("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
+        print("TargetLocation: {}, {}, {}".format(targetLocation.north, targetLocation.east, targetLocation.down))
         while self.vehicle.mode.name == "GUIDED":  # Stop action if we are no longer in guided mode.
             currentLocation = self.vehicle.location.local_frame
-            # remainingDistance = self.get_distance_metres_EKF(currentLocation, targetLocation)
+            #remainingDistance = self.get_distance_metres_EKF(currentLocation, targetLocation)
             if func is None:
                 remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation) * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
             elif func == 'mav':
                 remainingDistance = self.get_distance_metres(currentLocation, targetLocation)
-            print("Distance to target: ", remainingDistance)
+            print("Distance to target: {}".format(remainingDistance))
             if remainingDistance <= self.distance_threshold:
                 print("Reached target")
                 break
@@ -471,10 +474,15 @@ class Cyclone(object):
             print("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
             org_yaw = self.vehicle.attitude.yaw
             global_NED = self.local_NED_to_global_NED(dNorth, dEast, dDown, org_yaw)
-            targetLocation = LocationLocal(startLocation.north + global_NED[0], startLocation.east + global_NED[1], startLocation.down + global_NED[2])
-            print('targetLocation: {}, {}, {}'.format(targetLocation.north, targetLocation.east, targetLocation.down))
-            targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
-            self.set_position_target_local_NED(targetLocation.north, targetLocation.east, targetLocation.down, frame)
+            targetOffset = LocationLocal(dNorth, dEast, dDown)
+            #targetLocation = LocationLocal(startLocation.north + global_NED[0], startLocation.east + global_NED[1], startLocation.down + global_NED[2])
+            #targetLocation = LocationLocal(startLocation.north + targetOffset.north, startLocation.east + targetOffset.east, startLocation.down + targetOffset.down)
+            print('targetOffset: {}, {}, {}'.format(targetOffset.north, targetOffset.east, targetOffset.down))
+            # targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
+            distanceVector = LocationLocal(targetOffset.north - (startLocation.north - self.local_home.north), targetOffset.east - (startLocation.east - self.local_home.east), targetOffset.down - (startLocation.down - self.local_home.down))
+            targetDistance = math.sqrt(distanceVector.north**2 + distanceVector.east**2 + distanceVector.down**2)
+            print("Distance to fly: {}".format(targetDistance))
+            self.set_position_target_local_NED(targetOffset.north, targetOffset.east, targetOffset.down, frame)
 
         elif (frame == mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT):
             startLocation = self.vehicle.location.global_relative_frame
@@ -490,8 +498,10 @@ class Cyclone(object):
             currentLocation = self.vehicle.location.local_frame
             # remainingDistance = self.get_distance_metres(self.vehicle.location.global_relative_frame, targetLocation)
             # remainingDistance is the distance covered along the straight path from the startLocation of this navigation.
-            remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation) * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
+            remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation)# * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
+            #remainingDistance = self.get_distance_metres_EKF(currentLocation, targetOffset)
             print("Distance to target: {}".format(remainingDistance))
+            print("Current location: {}, {}, {}".format(currentLocation.north, currentLocation.east, currentLocation.down))
             if remainingDistance <= self.distance_threshold:
                 print("Reached target")
                 break

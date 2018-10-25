@@ -1,3 +1,6 @@
 [submodule "Python-C++ interface/src"]
 	path = Python-C++ interface/src
 	url = https://github.com/cyclone-tue/cyclone-vision
+[submodule "Python-C++ interface/marker"]
+	path = Python-C++ interface/marker
+	url = https://github.com/cyclone-tue/Vision_Marker_theory.git

@@ -13,11 +13,8 @@ cmake-build-debug/
 venv/
 angles2.txt
 __pycach__/
-
-Command Scripts/mav\.parm
-
-Command Scripts/mav\.tlog
-
-Command Scripts/mav\.tlog\.raw
+mav.parm
+mav.tlog
+mav.tlog.raw
 
 Python-C\+\+ interface/build/
