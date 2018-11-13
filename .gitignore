@@ -16,5 +16,7 @@ __pycach__/
 mav.parm
 mav.tlog
 mav.tlog.raw
+*.log
+simulator/
 
 Python-C\+\+ interface/build/

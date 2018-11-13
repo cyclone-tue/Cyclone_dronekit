@@ -6,11 +6,12 @@ from dronekit import connect, Vehicle, VehicleMode, LocationGlobal, LocationGlob
 from pymavlink import mavutil
 import time
 import math
+import logging
 
 
 class Cyclone(object):
 
-    def __init__(self, connection_string, configs):
+    def __init__(self, connection_string, configs, handlers=[]):
         """Constructor.
         This is the contructor for the Cyclone class.
         It connects to the drone and initialize the parameters set in configs.
@@ -21,9 +22,12 @@ class Cyclone(object):
         Returns:
             nothing
         """
-        print("Connecting to vehicle using: " + connection_string )
+        self.logger = logging.Logger('Cyclone', level=logging.DEBUG)
+        for handler in handlers:
+            self.logger.addHandler(handler)
+        self.logger.debug("Connecting to vehicle using: " + connection_string )
         self.vehicle = connect(connection_string, wait_ready=True)
-        print("Connected to the vehicle...")
+        self.logger.info("Connected to the vehicle...")
         self.doPause = False
         self.earth_radius = configs.earth_radius
         self.meters_per_degree = configs.meters_per_degree
@@ -79,7 +83,7 @@ class Cyclone(object):
         """
         self.vehicle.mode = VehicleMode("GUIDED")
         while not self.vehicle.mode.name == 'GUIDED':
-            print("Changing into GUIDED mode")
+            self.logger.info("Changing into GUIDED mode")
             time.sleep(self.sleep_time)
 
     def mode_auto(self):
@@ -93,7 +97,7 @@ class Cyclone(object):
         """
         self.vehicle.mode = VehicleMode("AUTO")
         while not self.vehicle.mode.name == 'AUTO':
-            print("Switching to AUTO mode...")
+            self.logger.info("Switching to AUTO mode...")
             time.sleep(self.sleep_time)
 
     def mode_rtl(self):
@@ -107,7 +111,7 @@ class Cyclone(object):
         """
         self.vehicle.mode = VehicleMode("RTL")
         while not self.vehicle.mode.name == "RTL":
-            print('Switching to RTL mode...')
+            self.logger.info('Switching to RTL mode...')
             time.sleep(self.sleep_time)
 
     def arm_check(self):
@@ -120,16 +124,16 @@ class Cyclone(object):
             nothing
         """
         while not self.vehicle.is_armable:
-            print("Waiting for vehicle to initialise...")
+            self.logger.info("Waiting for vehicle to initialise...")
             time.sleep(self.sleep_time)
 
-        print("Drone is armable, please arm the drone.")
+        self.logger.info("Drone is armable, please arm the drone.")
 
         while not self.vehicle.armed:
-            print("Waiting for arming the drone")
+            self.logger.info("Waiting for arming the drone")
             time.sleep(self.sleep_time)
 
-        print("Drone is armed.")
+        self.logger.info("Drone is armed.")
 
     def awake_script(self):
         """Wakes up the script.
@@ -142,7 +146,7 @@ class Cyclone(object):
             nothing
         """
         while not self.vehicle.mode.name == 'GUIDED':
-            print("(Main): Switch to GUIDED mode to awake the script")
+            self.logger.info("Switch to GUIDED mode to awake the script")
             time.sleep(self.sleep_time)
 
     def pause(self):
@@ -174,13 +178,18 @@ class Cyclone(object):
             cmds.download()
             cmds.wait_ready()
             if not self.vehicle.home_location:
-                print('Obtaining home location...')
-        print("Home Location: %s" % self.vehicle.home_location)
+                self.logger.info('Obtaining home location...')
+        self.logger.info("Home Location: %s" % self.vehicle.home_location)
 
-    def set_home_location(self):
+    def set_home_location(self, location=None):
         """Define the current location of the drone as the home location."""
-        self.vehicle.home_location = self.vehicle.location.global_frame
-        self.local_home = self.vehicle.location.local_frame
+        if location:
+            self.vehicle.home_location = location.global_frame
+            self.local_home = location.local_frame
+        else:
+            self.vehicle.home_location = self.vehicle.location.global_frame
+            self.local_home = self.vehicle.location.local_frame
+
 
     # Location/Distance estimations
 
@@ -281,26 +290,26 @@ class Cyclone(object):
         Returns:
             nothing
         """
-        print("Basic pre-arm checks")
+        self.logger.info("Basic pre-arm checks")
         while not self.vehicle.is_armable:
-            print(" Waiting for vehicle to initialise...")
+            self.logger.debug(" Waiting for vehicle to initialise...")
             time.sleep(self.sleep_time)
 
-        print("Arming motors")
+        self.logger.info("Arming motors")
         self.vehicle.mode = VehicleMode("GUIDED")
         self.vehicle.armed = True
 
         while not self.vehicle.armed:
-            print(" Waiting for arming...")
+            self.logger.debug(" Waiting for arming...")
             time.sleep(self.sleep_time)
 
-        print("Taking off!")
+        self.logger.info("Taking off!")
         self.vehicle.simple_takeoff(aTargetAltitude)  # Take off to target altitude
 
         while True:
-            print(" Altitude: ", self.vehicle.location.global_relative_frame.alt)
+            self.logger.info(" Altitude: {}".format(self.vehicle.location.global_relative_frame.alt))
             if self.vehicle.location.global_relative_frame.alt >= aTargetAltitude*0.95:
-                print("Reached target altitude")
+                self.logger.info("Reached target altitude")
                 break
             time.sleep(self.sleep_time)
 
@@ -440,8 +449,8 @@ class Cyclone(object):
             targetLocation = self.global_NED_to_wp(startLocation, dNorth, dEast, dDown)
             targetDistance = self.get_distance_metres(startLocation, targetLocation)
             self.goto_wp_global(targetLocation, func)
-        print("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
-        print("TargetLocation: {}, {}, {}".format(targetLocation.north, targetLocation.east, targetLocation.down))
+        self.logger.info("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
+        self.logger.info("TargetLocation: {}, {}, {}".format(targetLocation.north, targetLocation.east, targetLocation.down))
         while self.vehicle.mode.name == "GUIDED":  # Stop action if we are no longer in guided mode.
             currentLocation = self.vehicle.location.local_frame
             #remainingDistance = self.get_distance_metres_EKF(currentLocation, targetLocation)
@@ -449,9 +458,9 @@ class Cyclone(object):
                 remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation) * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
             elif func == 'mav':
                 remainingDistance = self.get_distance_metres(currentLocation, targetLocation)
-            print("Distance to target: {}".format(remainingDistance))
+            self.logger.debug("Distance to target: {}".format(remainingDistance))
             if remainingDistance <= self.distance_threshold:
-                print("Reached target")
+                self.logger.info("Reached target")
                 break
             time.sleep(self.sleep_time)
 
@@ -471,17 +480,17 @@ class Cyclone(object):
         """
         if (frame == mavutil.mavlink.MAV_FRAME_LOCAL_NED or mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED):
             startLocation = self.vehicle.location.local_frame
-            print("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
+            self.logger.info("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
             org_yaw = self.vehicle.attitude.yaw
             global_NED = self.local_NED_to_global_NED(dNorth, dEast, dDown, org_yaw)
             targetOffset = LocationLocal(dNorth, dEast, dDown)
             #targetLocation = LocationLocal(startLocation.north + global_NED[0], startLocation.east + global_NED[1], startLocation.down + global_NED[2])
             #targetLocation = LocationLocal(startLocation.north + targetOffset.north, startLocation.east + targetOffset.east, startLocation.down + targetOffset.down)
-            print('targetOffset: {}, {}, {}'.format(targetOffset.north, targetOffset.east, targetOffset.down))
+            self.logger.info('targetOffset: {}, {}, {}'.format(targetOffset.north, targetOffset.east, targetOffset.down))
             # targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
             distanceVector = LocationLocal(targetOffset.north - (startLocation.north - self.local_home.north), targetOffset.east - (startLocation.east - self.local_home.east), targetOffset.down - (startLocation.down - self.local_home.down))
             targetDistance = math.sqrt(distanceVector.north**2 + distanceVector.east**2 + distanceVector.down**2)
-            print("Distance to fly: {}".format(targetDistance))
+            self.logger.info("Distance to fly: {}".format(targetDistance))
             self.set_position_target_local_NED(targetOffset.north, targetOffset.east, targetOffset.down, frame)
 
         elif (frame == mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT):
@@ -500,10 +509,10 @@ class Cyclone(object):
             # remainingDistance is the distance covered along the straight path from the startLocation of this navigation.
             remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation)# * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
             #remainingDistance = self.get_distance_metres_EKF(currentLocation, targetOffset)
-            print("Distance to target: {}".format(remainingDistance))
-            print("Current location: {}, {}, {}".format(currentLocation.north, currentLocation.east, currentLocation.down))
+            self.logger.debug("Distance to target: {}".format(remainingDistance))
+            self.logger.debug("Current location: {}, {}, {}".format(currentLocation.north, currentLocation.east, currentLocation.down))
             if remainingDistance <= self.distance_threshold:
-                print("Reached target")
+                self.logger.info("Reached target")
                 break
             time.sleep(self.sleep_time)
 
@@ -529,10 +538,10 @@ class Cyclone(object):
 
         while self.vehicle.mode.name == "GUIDED":  # Stop action if we are no longer in guided mode.
             currentLocation = self.vehicle.location.global_relative_frame
-            print('Approaching target waypoint...')
-            print(currentLocation)
+            self.logger.debug('Approaching target waypoint...')
+            self.logger.debug(currentLocation)
             if (abs(targetLocation.lat - currentLocation.lat) * 1e7 <= self.coordinate_threshold) and (abs(targetLocation.lon - currentLocation.lon) * 1e7 <= self.coordinate_threshold):
-                print("Reached target")
+                self.logger.info("Reached target")
                 break
             time.sleep(self.sleep_time)
 
@@ -548,7 +557,7 @@ class Cyclone(object):
         Returns:
             cmds: Comamnds downloaded
         """
-        print('Downloading mission from the vehicle...')
+        self.logger.info('Downloading mission from the vehicle...')
         cmds = self.vehicle.commands
         cmds.download()
         cmds.wait_ready()
@@ -564,7 +573,7 @@ class Cyclone(object):
         Returns:
             missionlist: List of planned mission commands
         """
-        print('Modifying mission with the updated list of waypoints...')
+        self.logger.info('Modifying mission with the updated list of waypoints...')
         missionlist = []
         # Run Vision and Pathplanning, path = readPathPlanned()
         # for i in range(nrow):
@@ -587,7 +596,7 @@ class Cyclone(object):
         Returns:
             nothing
         """
-        print('Updating modified mission...')
+        self.logger.info('Updating modified mission...')
         cmds.clear()
         for cmd in missionlist:
             cmds.add(cmd)
