@@ -480,8 +480,8 @@ class Cyclone(object):
         """
         if (frame == mavutil.mavlink.MAV_FRAME_LOCAL_NED or mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED):
             startLocation = self.vehicle.location.local_frame
-            print("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
-            print("HomeLocation: {}, {}, {}".format(self.local_home.north, self.local_home.east, self.local_home.down))
+            self.logger.info("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
+            self.logger.debug("HomeLocation: {}, {}, {}".format(self.local_home.north, self.local_home.east, self.local_home.down))
             org_yaw = self.vehicle.attitude.yaw
             global_NED = self.local_NED_to_global_NED(dNorth, dEast, dDown, org_yaw)
             targetOffset = LocationLocal(dNorth, dEast, dDown)
