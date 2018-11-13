@@ -480,7 +480,8 @@ class Cyclone(object):
         """
         if (frame == mavutil.mavlink.MAV_FRAME_LOCAL_NED or mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED):
             startLocation = self.vehicle.location.local_frame
-            self.logger.info("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
+            print("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
+            print("HomeLocation: {}, {}, {}".format(self.local_home.north, self.local_home.east, self.local_home.down))
             org_yaw = self.vehicle.attitude.yaw
             global_NED = self.local_NED_to_global_NED(dNorth, dEast, dDown, org_yaw)
             targetOffset = LocationLocal(dNorth, dEast, dDown)
@@ -488,7 +489,9 @@ class Cyclone(object):
             #targetLocation = LocationLocal(startLocation.north + targetOffset.north, startLocation.east + targetOffset.east, startLocation.down + targetOffset.down)
             self.logger.info('targetOffset: {}, {}, {}'.format(targetOffset.north, targetOffset.east, targetOffset.down))
             # targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
-            distanceVector = LocationLocal(targetOffset.north - (startLocation.north - self.local_home.north), targetOffset.east - (startLocation.east - self.local_home.east), targetOffset.down - (startLocation.down - self.local_home.down))
+            #distanceVector = LocationLocal(targetOffset.north - (startLocation.north - self.local_home.north), targetOffset.east - (startLocation.east - self.local_home.east), targetOffset.down - (startLocation.down - self.local_home.down))
+            distanceVector = LocationLocal(targetOffset.north - (startLocation.north), targetOffset.east - (startLocation.east ), targetOffset.down - (startLocation.down ))
+
             targetDistance = math.sqrt(distanceVector.north**2 + distanceVector.east**2 + distanceVector.down**2)
             self.logger.info("Distance to fly: {}".format(targetDistance))
             self.set_position_target_local_NED(targetOffset.north, targetOffset.east, targetOffset.down, frame)
