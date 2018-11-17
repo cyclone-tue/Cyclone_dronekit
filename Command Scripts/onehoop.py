@@ -108,6 +108,7 @@ class flight():
             self.vision.pathLock.acquire(True) # block until lock is aquired
             if self.vision.newPath:
                 list_location = self.vision.path[:]
+                # self.logger.debug("Last location is: {}, {}, {}".format(list_location[99][0], list_location[99][1], list_location[99][2]))
                 self.vision.newPath = False
                 fromPosition = self.vision.fromPosition
                 self.vision.pathLock.release()

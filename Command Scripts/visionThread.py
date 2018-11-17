@@ -30,9 +30,8 @@ class VisionThread(threading.Thread):
         calibration = calibrationFile
         setup(camera, calibration)
         self.logging.info("Ran setup using camera={} and calibration={}".format(camera, calibration))
-        path_planning = lib.output_to_py
-        path_planning.restype = ctypes.POINTER(ctypes.c_double)
-        self.path_planner = path_planning
+        self.path_planner = lib.output_to_py
+        self.path_planner.restype = ctypes.POINTER(ctypes.c_double)
         self.cleanup = lib.cleanup
 
 
@@ -40,8 +39,8 @@ class VisionThread(threading.Thread):
         self.logging.info("Starting vision thread")
         self.initVision(self.calibrationFile, cameraID=self.cameraID)
         while not self.stop.isSet():
-            foundPath = ctypes.c_bool() # is set to true if a path is found, false otherwise
-            visualize = ctypes.c_bool(True) # True if the pathplanning should be visualized using opencv. This can be used for debug purposes.
+            foundPath = ctypes.c_bool()  # is set to true if a path is found, false otherwise
+            visualize = ctypes.c_bool(True)  # True if the pathplanning should be visualized using opencv. This can be used for debug purposes.
 
             trajectory = self.path_planner(ctypes.pointer(foundPath), visualize)
             nrow = 100      # Size of the planned path.
@@ -57,9 +56,9 @@ class VisionThread(threading.Thread):
                     # (x, y, z) waypoints w.r.t. the original position of the drone are
                     # parsed at column 0, 4 and 8 of the computed path.
                     # North is in the z direction, east is in the x direction and down is in the y direction.
-                    self.path.append((matrix_index(trajectory, ncol, i, 8), matrix_index(
-                        trajectory, ncol, i, 0), matrix_index(trajectory, ncol, i, 4)))
-
+                    self.path.append((matrix_index(trajectory, nrow, i, 8), matrix_index(
+                        trajectory, nrow, i, 0), matrix_index(trajectory, nrow, i, 4)))
+                # self.logging.debug("Last location is: north: {}, east: {}, down: {}".format(self.path[nrow - 1][0], self.path[nrow - 1][1], self.path[nrow -1][2]))
                 self.pathLock.release()
         self.cleanup()
         self.logging.info("Stopping vision thread")
