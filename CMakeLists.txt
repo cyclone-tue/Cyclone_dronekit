@@ -10,5 +10,4 @@ add_executable(Cyclone_dronekit
         "Command Scripts/onehoop.py"
         "Command Scripts/tmp_test.py"
         "Command Scripts/video2.mp4"
-        "Python-C++ interface/src/main.cpp"
-        "Python-C++ interface/V_PP_module.cpp")
+        "Python-C++ interface/marker/Detect_Markers.cpp")

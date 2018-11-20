@@ -145,8 +145,8 @@ class Cyclone(object):
         Returns:
             nothing
         """
+        self.logger.info("Switch to GUIDED mode to awake the script")
         while not self.vehicle.mode.name == 'GUIDED':
-            self.logger.info("Switch to GUIDED mode to awake the script")
             time.sleep(self.sleep_time)
 
     def pause(self):
