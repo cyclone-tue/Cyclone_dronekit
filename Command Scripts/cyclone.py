@@ -489,8 +489,8 @@ class Cyclone(object):
             #targetLocation = LocationLocal(startLocation.north + targetOffset.north, startLocation.east + targetOffset.east, startLocation.down + targetOffset.down)
             self.logger.info('targetOffset: {}, {}, {}'.format(targetOffset.north, targetOffset.east, targetOffset.down))
             # targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
-            #distanceVector = LocationLocal(targetOffset.north - (startLocation.north - self.local_home.north), targetOffset.east - (startLocation.east - self.local_home.east), targetOffset.down - (startLocation.down - self.local_home.down))
-            distanceVector = LocationLocal(targetOffset.north - (startLocation.north), targetOffset.east - (startLocation.east ), targetOffset.down - (startLocation.down ))
+            distanceVector = LocationLocal(targetOffset.north - (startLocation.north - self.local_home.north), targetOffset.east - (startLocation.east - self.local_home.east), targetOffset.down - (startLocation.down - self.local_home.down))
+            #distanceVector = LocationLocal(targetOffset.north - (startLocation.north), targetOffset.east - (startLocation.east ), targetOffset.down - (startLocation.down ))
 
             targetDistance = math.sqrt(distanceVector.north**2 + distanceVector.east**2 + distanceVector.down**2)
             self.logger.info("Distance to fly: {}".format(targetDistance))
