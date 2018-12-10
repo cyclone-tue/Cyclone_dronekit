@@ -184,6 +184,12 @@ class Cyclone(object):
 
     # Location/Distance estimations
 
+    def get_state(self):
+        position = self.vehicle.location.local_frame
+        velocity = self.vehicle.velocity
+        attitude = self.vehicle.attitude
+        
+
     def global_NED_to_wp(self, original_location, dNorth, dEast, dDown):
         """Converter from global NED frame to global waypoint.
         It converts the given positions in the global NED frame to global waypoints defined in coordinates of WSG84 standard.
