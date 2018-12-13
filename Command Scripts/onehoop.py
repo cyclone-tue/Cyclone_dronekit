@@ -23,6 +23,7 @@ class flight():
             self.simulation = True
         else:
             self.simulation = False
+        self.simulation = True          # because I dont want to break everything
         self.path_planning = self.initVision()
         self.drone = self.getDrone(args)
 
@@ -68,12 +69,12 @@ class flight():
         so = ctypes.cdll.LoadLibrary
         lib = so("../Python-C++ interface/libCycloneVision.so")
         print("Loaded library")
-        setup = lib.setupVariables
+        setup = lib.setup
         if self.simulation:
-            setup(0, "../Python-C++ interface/marker/laptop_calibration.txt")
+            setup("../Python-C++ interface/marker/laptop_calibration.txt")
             print("Ran setup using {} and {}".format(0, "../Python-C++ interface/marker/laptop_calibration.txt"))
         else:
-            setup(0, "../Python-C++ interface/marker/drone_calibration.txt")
+            setup("../Python-C++ interface/marker/drone_calibration.txt")
             print("Ran setup using {} and {}".format(0, "../Python-C++ interface/marker/drone_calibration.txt"))
 
         path_planning = lib.output_to_py
@@ -90,16 +91,22 @@ class flight():
         #startPosition = (0, 0, 0) # The position from which the path planning was calculated. All positions from the path are relative to this point.
         while self.drone.vehicle.mode.name == "GUIDED":
 
-            foundPath = ctypes.c_bool() # is set to true if a path is found, false otherwise
-            visualize = ctypes.c_bool(self.simulation) # True if the pathplanning should be visualized using opencv. This can be used for debug purposes.
+            currentState = self.drone.get_state()
+            currentState[0] = 0
+            currentState[1] = 0
+            currentState[2] = 0
+            currentTorque = self.drone.get_torques_and_thrust()
+            currentStateC = (ctypes.c_double * len(currentState))(*currentState)
+            currentTorqueC = (ctypes.c_double * len(currentTorque))(*currentTorque)
 
-            trajectory = self.path_planning(ctypes.pointer(foundPath), visualize)
-            nrow = 100      # Size of the planned path.
-            ncol = 12
-            
+            pathLength = ctypes.c_int()                     # is set to true if a path is found, false otherwise
+            visualize = ctypes.c_bool(self.simulation)      # True if the pathplanning should be visualized using opencv. This can be used for debug purposes.
+            trajectory = self.path_planning(ctypes.pointer(currentStateC), ctypes.pointer(currentTorqueC), ctypes.pointer(pathLength), visualize)
+            ncol = int(pathLength.value)      # Size of the planned path.
+            nrow = 17
 
 
-            if foundPath:
+            if pathLength.value != 0:
                 self.drone.set_home_location()                  # Reset EKF origin for further computations.
                 frame = mavutil.mavlink.MAV_FRAME_LOCAL_NED     # Define the frame to use (local NED w.r.t. EKF origin).
                 print("Found path")
@@ -109,12 +116,15 @@ class flight():
                     # (x, y, z) waypoints w.r.t. the original position of the drone are
                     # parsed at column 0, 4 and 8 of the computed path.
                     # North is in the z direction, east is in the x direction and down is in the y direction.
-                    LocationTuples.append((matrix_index(trajectory, ncol, i, 8), matrix_index(
-                        trajectory, ncol, i, 0), matrix_index(trajectory, ncol, i, 4)))
+                    LocationTuples.append((matrix_index(trajectory, ncol, 0, i), matrix_index(
+                        trajectory, ncol, 1, i), matrix_index(trajectory, ncol, 2, i)))
                     # For all the waypoints recoreded, convert them from local NED w.r.t.
                     # the heading of the drone to global NED (rotating axes w.r.t. yaw angle).
                     list_location = LocationTuples
 
+                print(trajectory[0])
+                print(trajectory[1])
+                print(list_location)
 
                 self.followPath(list_location[:points_to_cover], frame)
                 list_location = list_location[points_to_cover:]
@@ -147,7 +157,7 @@ class flight():
 
 # Method for matrix indexing.
 def matrix_index(a, rowsize, m, n):
-    return(a[rowsize * n + m])
+    return(a[rowsize * m + n])
 
 
 if __name__ == "__main__":

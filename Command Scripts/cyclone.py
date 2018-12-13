@@ -182,6 +182,18 @@ class Cyclone(object):
         self.vehicle.home_location = self.vehicle.location.global_frame
         self.local_home = self.vehicle.location.local_frame
 
+
+
+    def get_state(self):                # check this, its still wrong
+        pos = self.vehicle.location.local_frame         # north, east, down
+        vel = self.vehicle.velocity                     # in body frame i guess
+        ang = self.vehicle.attitude                     # yaw is zero at north maybe? what is order of rotations.
+        heading = self.vehicle.heading                  # should be used
+        return [float(pos.north), float(pos.east), float(pos.down), float(vel[0]), float(vel[1]), float(vel[2]), float(ang.roll), float(ang.pitch), float(0), float(0), float(0), float(0)]
+
+    def get_torques_and_thrust(self):       # unavailable i guess.
+        return [0,0,0,0]
+
     # Location/Distance estimations
 
     def global_NED_to_wp(self, original_location, dNorth, dEast, dDown):
