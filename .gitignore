@@ -18,3 +18,7 @@ mav.tlog
 mav.tlog.raw
 
 Python-C\+\+ interface/build/
+
+simulator/
+
+*.log
