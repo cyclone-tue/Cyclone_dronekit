@@ -55,7 +55,8 @@ class flight():
             none
         """
         if self.simulation:
-            self.drone.arm_and_takeoff(5) # Take of automatically if this is a simulation.
+            # self.drone.set_home_location()
+            self.drone.arm_and_takeoff(1.28) # Take of automatically if this is a simulation.
         else:
             self.drone.awake_script() # Wait for guided mode if this is not a simulation.
         self.drone.obtain_home_location() # Download the home location from the drone.
@@ -81,7 +82,7 @@ class flight():
         self.logger.info("Stopped vision")
         self.drone.vehicle.close() # Close the connection to the drone.
         # del self.drone.vehicle
-        if self.simulation:
+        if self.simulation and self.sitl:
             self.sitl.stop() # Stop the sitl
             del self.sitl
         del self.drone
@@ -127,45 +128,60 @@ class flight():
 
 
     def goToHoop(self):
-        logging.info("Looking for path")
+
+        self.invalidatePath()
         
         points_to_cover = 10        # First n number of points to cover in the trajectory after every recalculation.
 
-        list_location = []      # Tuples and lists for storing the trajectory information.
+        # list_location = []      # Tuples and lists for storing the trajectory information.
         frame = mavutil.mavlink.MAV_FRAME_LOCAL_NED
         #startPosition = (0, 0, 0) # The position from which the path planning was calculated. All positions from the path are relative to this point.
         while self.drone.vehicle.mode.name == "GUIDED":
 
-            self.vision.pathLock.acquire(True) # block until lock is aquired
-            if self.vision.newPath:
-                list_location = self.vision.path[:]
-                # self.logger.debug("Last location is: {}, {}, {}".format(list_location[99][0], list_location[99][1], list_location[99][2]))
-                self.vision.newPath = False
-                fromPosition = self.vision.fromPosition
-                self.vision.pathLock.release()
-                self.drone.set_home_location(fromPosition)
+            if self.getPath():
+                # self.drone.set_home_location(self.fromPosition)
                 self.logger.info("Following path")
-                self.followPath(list_location[:points_to_cover], frame)
-                list_location = list_location[points_to_cover:]
+                self.logger.debug("Location taget is: {}, {}, {}".format(self.list_location[0][0], self.list_location[0][1], self.list_location[0][2]))
+                # self.followPath(self.list_location[:points_to_cover], self.fromPosition, frame) # TODO uncomment this
+                self.followPath(self.list_location, self.fromPosition, frame)
+                self.list_location = self.list_location[points_to_cover:]# TODO uncomment this
             else:
-                self.vision.pathLock.release()
                 # self.logger.debug("Could not find path")
-                if len(list_location) > 0:
-                    self.logger.info("Following previous path")
-                    self.followPath(list_location[:points_to_cover], frame)
-                    list_location = list_location[:points_to_cover]
+                if len(self.list_location) > 0:
+                    pass
+                    # self.logger.info("Following previous path")
+                    self.followPath(self.list_location[:points_to_cover], self.fromPosition, frame) #TODO uncomment this
+                    self.list_location = self.list_location[:points_to_cover] #TODO uncomment this
 
-    def followPath(self, list_location, frame):
+    def getPath(self):
+        self.vision.pathLock.acquire(True) # block until lock is aquired
+        if self.vision.newPath:
+            self.list_location = self.vision.path[:]
+            # self.logger.debug("Last location is: {}, {}, {}".format(list_location[99][0], list_location[99][1], list_location[99][2]))
+            self.vision.newPath = False
+            self.fromPosition = self.vision.fromPosition
+            self.vision.pathLock.release()
+            return True
+        else:
+            self.vision.pathLock.release()
+            return False
+
+    def invalidatePath(self):
+        self.getPath()
+        self.list_location = []
+
+    def followPath(self, list_location, startLocation, frame):
         for i in range(0, len(list_location)):
             # Given the global NED waypoints w.r.t. the home location (EKF origin), navigate the drone by specifying the frame.
 
             #self.drone.goto_local_NED(list_location[i][0], list_location[i][1], list_location[i][2], frame)  #waits until target is reached
             # Offset calculation for positions
-            dNorth = list_location[i][0]# - (self.drone.vehicle.location.local_frame.north - startPosition.north)
-            dEast = list_location[i][1]# - (self.drone.vehicle.location.local_frame.east - startPosition.east)
-            dDown = list_location[i][2]# - (self.drone.vehicle.location.local_frame.down - startPosition.down)
-            logging.info("Point {} out of {}".format(i, len(list_location)))
-            logging.info('Goto ({}, {}, {})'.format(dNorth, dEast, dDown))
+            dNorth = list_location[i][0] + startLocation.north# - (self.drone.vehicle.location.local_frame.north - startPosition.north)
+            dEast = list_location[i][1] + startLocation.east# - (self.drone.vehicle.location.local_frame.east - startPosition.east)
+            dDown = list_location[i][2] + startLocation.down# - (self.drone.vehicle.location.local_frame.down - startPosition.down)
+            self.logger.info("Point {} out of {}".format(i, len(list_location)))
+            self.logger.info('Goto ({}, {}, {})'.format(dNorth, dEast, dDown))
+            # self.logger.info("Start location ({}, {}, {})".format(startLocation.north, startLocation.east, startLocation.down))
             self.drone.goto_local_NED(dNorth, dEast, dDown, frame) # Waits until target is reached
         return
 

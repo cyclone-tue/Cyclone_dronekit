@@ -7,6 +7,7 @@ from pymavlink import mavutil
 import time
 import math
 import logging
+import functools
 
 
 class Cyclone(object):
@@ -34,7 +35,7 @@ class Cyclone(object):
         self.sleep_time = configs.sleep_time
         self.distance_threshold = configs.distance_threshold
         self.coordinate_threshold = configs.coordinate_threshold
-        self.local_home = LocationLocal(0, 0, 0)
+        self.vehicle.add_attribute_listener('armed', functools.partial(self.on_armed, self))
 
     def __del__(self):
         """Destructor.
@@ -74,7 +75,7 @@ class Cyclone(object):
 
     def mode_guided(self):
         """Guided mode switch.
-        It switches the drone to guided mode.
+        It switches the drone to guided mode.http://book.pythontips.com/en/latest/lambdas.html
 
         Args:
             nothing
@@ -123,17 +124,39 @@ class Cyclone(object):
         Returns:
             nothing
         """
+        self.logger.info("Waiting for vehicle to initialise...")
         while not self.vehicle.is_armable:
-            self.logger.info("Waiting for vehicle to initialise...")
             time.sleep(self.sleep_time)
 
         self.logger.info("Drone is armable, please arm the drone.")
 
+        self.logger.info("Waiting for arming the drone")
         while not self.vehicle.armed:
-            self.logger.info("Waiting for arming the drone")
             time.sleep(self.sleep_time)
 
         self.logger.info("Drone is armed.")
+
+    def on_armed(self, vehicle, name, msg, extra):
+        self.logger.info(msg)
+        if msg == "armed":
+            self.obtain_home_location()
+            location = self.vehicle.location.global_relative_frame
+            self.logger.info('{}, {}, {}'.format(location.lon, location.lat, location.alt))
+            home_location = self.vehicle.home_location
+            x_offset = self.latitude_offset_to_meters(home_location.lat - location.lat)
+            y_offset = self.longitude_offset_to_meters(home_location.lon - location.lon, home_location.lat)
+            self.start_offset = LocationLocal(x_offset, y_offset, -location.alt)
+            self.logger.info('Start location offset: {}, {}, {}'.format(self.start_offset.north, self.start_offset.east, self.start_offset.down))
+
+        else:
+            self.logger.info("No longer armed")
+
+    def latitude_offset_to_meters(self, latitide_difference):
+        return latitide_difference * 111111
+
+    def longitude_offset_to_meters(self, longitude_difference, latitude_point1):
+        return longitude_difference * 111111*math.cos(latitude_point1)
+
 
     def awake_script(self):
         """Wakes up the script.
@@ -173,22 +196,21 @@ class Cyclone(object):
 
     def obtain_home_location(self):
         """Wait for the home location to be downloaded from the drone."""
+        self.logger.info('Obtaining home location...')
         while not self.vehicle.home_location:
             cmds = self.vehicle.commands
             cmds.download()
             cmds.wait_ready()
             if not self.vehicle.home_location:
-                self.logger.info('Obtaining home location...')
+                pass
         self.logger.info("Home Location: %s" % self.vehicle.home_location)
 
     def set_home_location(self, location=None):
-        """Define the current location of the drone as the home location."""
+        """Define the current location of the drone as the home location. Or use the given global frame point."""
         if location:
-            self.vehicle.home_location = location.global_frame
-            self.local_home = location.local_frame
+            self.vehicle.home_location = location
         else:
             self.vehicle.home_location = self.vehicle.location.global_frame
-            self.local_home = self.vehicle.location.local_frame
 
 
     # Location/Distance estimations
@@ -291,16 +313,16 @@ class Cyclone(object):
             nothing
         """
         self.logger.info("Basic pre-arm checks")
+        self.logger.debug(" Waiting for vehicle to initialise...")
         while not self.vehicle.is_armable:
-            self.logger.debug(" Waiting for vehicle to initialise...")
             time.sleep(self.sleep_time)
 
         self.logger.info("Arming motors")
         self.vehicle.mode = VehicleMode("GUIDED")
         self.vehicle.armed = True
 
+        self.logger.debug(" Waiting for arming...")
         while not self.vehicle.armed:
-            self.logger.debug(" Waiting for arming...")
             time.sleep(self.sleep_time)
 
         self.logger.info("Taking off!")
@@ -479,9 +501,9 @@ class Cyclone(object):
             nothing
         """
         if (frame == mavutil.mavlink.MAV_FRAME_LOCAL_NED or mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED):
-            startLocation = self.vehicle.location.local_frame
+            localTemp = self.vehicle.location.local_frame
+            startLocation = LocationLocal(localTemp.north, localTemp.east, localTemp.down)
             self.logger.info("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
-            self.logger.debug("HomeLocation: {}, {}, {}".format(self.local_home.north, self.local_home.east, self.local_home.down))
             org_yaw = self.vehicle.attitude.yaw
             global_NED = self.local_NED_to_global_NED(dNorth, dEast, dDown, org_yaw)
             targetOffset = LocationLocal(dNorth, dEast, dDown)
@@ -489,8 +511,8 @@ class Cyclone(object):
             #targetLocation = LocationLocal(startLocation.north + targetOffset.north, startLocation.east + targetOffset.east, startLocation.down + targetOffset.down)
             self.logger.info('targetOffset: {}, {}, {}'.format(targetOffset.north, targetOffset.east, targetOffset.down))
             # targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
-            distanceVector = LocationLocal(targetOffset.north - (startLocation.north - self.local_home.north), targetOffset.east - (startLocation.east - self.local_home.east), targetOffset.down - (startLocation.down - self.local_home.down))
-            #distanceVector = LocationLocal(targetOffset.north - (startLocation.north), targetOffset.east - (startLocation.east ), targetOffset.down - (startLocation.down ))
+            #distanceVector = LocationLocal(targetOffset.north - (startLocation.north - self.local_home.north), targetOffset.east - (startLocation.east - self.local_home.east), targetOffset.down - (startLocation.down - self.local_home.down))
+            distanceVector = LocationLocal(targetOffset.north - (startLocation.north), targetOffset.east - (startLocation.east ), targetOffset.down - (startLocation.down ))
 
             targetDistance = math.sqrt(distanceVector.north**2 + distanceVector.east**2 + distanceVector.down**2)
             self.logger.info("Distance to fly: {}".format(targetDistance))
@@ -510,7 +532,9 @@ class Cyclone(object):
             currentLocation = self.vehicle.location.local_frame
             # remainingDistance = self.get_distance_metres(self.vehicle.location.global_relative_frame, targetLocation)
             # remainingDistance is the distance covered along the straight path from the startLocation of this navigation.
-            remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation)# * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
+            travelledDistance = self.get_distance_metres_EKF(startLocation, currentLocation) #* math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
+            self.logger.debug("Travelled distance is {}".format(travelledDistance))
+            remainingDistance = targetDistance - travelledDistance
             #remainingDistance = self.get_distance_metres_EKF(currentLocation, targetOffset)
             self.logger.debug("Distance to target: {}".format(remainingDistance))
             self.logger.debug("Current location: {}, {}, {}".format(currentLocation.north, currentLocation.east, currentLocation.down))

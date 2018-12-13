@@ -1,5 +1,6 @@
 import threading
 import ctypes
+from dronekit import LocationLocal
 
 class VisionThread(threading.Thread):
 
@@ -49,7 +50,8 @@ class VisionThread(threading.Thread):
             if foundPath:
                 self.logging.debug("Found path")
                 self.pathLock.acquire(True) # block until lock is aquired
-                self.fromPosition = self.drone.vehicle.location
+                fromLocation = self.drone.vehicle.location.local_frame
+                self.fromPosition = LocationLocal(fromLocation.north, fromLocation.east, fromLocation.down)
                 self.path = []
                 self.newPath = True
                 for i in range(nrow):
@@ -62,6 +64,7 @@ class VisionThread(threading.Thread):
                 self.pathLock.release()
         self.cleanup()
         self.logging.info("Stopping vision thread")
+
 
 # Method for matrix indexing.
 def matrix_index(a, rowsize, m, n):
