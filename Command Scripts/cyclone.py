@@ -35,7 +35,6 @@ class Cyclone(object):
         self.sleep_time = configs.sleep_time
         self.distance_threshold = configs.distance_threshold
         self.coordinate_threshold = configs.coordinate_threshold
-        self.vehicle.add_attribute_listener('armed', functools.partial(self.on_armed, self))
 
     def __del__(self):
         """Destructor.
@@ -136,26 +135,11 @@ class Cyclone(object):
 
         self.logger.info("Drone is armed.")
 
-    def on_armed(self, vehicle, name, msg, extra):
-        self.logger.info(msg)
-        if msg == "armed":
-            self.obtain_home_location()
-            location = self.vehicle.location.global_relative_frame
-            self.logger.info('{}, {}, {}'.format(location.lon, location.lat, location.alt))
-            home_location = self.vehicle.home_location
-            x_offset = self.latitude_offset_to_meters(home_location.lat - location.lat)
-            y_offset = self.longitude_offset_to_meters(home_location.lon - location.lon, home_location.lat)
-            self.start_offset = LocationLocal(x_offset, y_offset, -location.alt)
-            self.logger.info('Start location offset: {}, {}, {}'.format(self.start_offset.north, self.start_offset.east, self.start_offset.down))
-
-        else:
-            self.logger.info("No longer armed")
-
     def latitude_offset_to_meters(self, latitide_difference):
         return latitide_difference * 111111
 
     def longitude_offset_to_meters(self, longitude_difference, latitude_point1):
-        return longitude_difference * 111111*math.cos(latitude_point1)
+        return longitude_difference * 111111*math.cos(math.radians(latitude_point1))
 
 
     def awake_script(self):
@@ -336,13 +320,18 @@ class Cyclone(object):
         self.logger.debug(" Waiting for arming...")
         while not self.vehicle.armed:
             time.sleep(self.sleep_time)
+        target = aTargetAltitude
+        if target < 0:
+            target = target * 1.05
+        else:
+            target = target * 0.95
 
-        self.logger.info("Taking off!")
+        self.logger.info("Taking off to {} meters!".format(aTargetAltitude))
         self.vehicle.simple_takeoff(aTargetAltitude)  # Take off to target altitude
 
         while True:
             self.logger.info(" Altitude: {}".format(self.vehicle.location.global_relative_frame.alt))
-            if self.vehicle.location.global_relative_frame.alt >= aTargetAltitude*0.95:
+            if self.vehicle.location.global_relative_frame.alt >= target:
                 self.logger.info("Reached target altitude")
                 break
             time.sleep(self.sleep_time)
@@ -661,3 +650,7 @@ class Cyclone(object):
         distancetopoint = self.get_distance_metres(
             self.vehicle.location.global_relative_frame, targetWaypointLocation)
         return distancetopoint
+
+    def wait_for_user(self):
+        self.logger.info("Press key to continue.")
+        raw_input("")
