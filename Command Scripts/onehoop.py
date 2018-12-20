@@ -138,13 +138,43 @@ class flight():
         #startPosition = (0, 0, 0) # The position from which the path planning was calculated. All positions from the path are relative to this point.
         while self.drone.vehicle.mode.name == "GUIDED":
 
-            if self.getPath():
-                # self.drone.set_home_location(self.fromPosition)
-                self.logger.info("Following path")
-                self.logger.debug("Location taget is: {}, {}, {}".format(self.list_location[0][0], self.list_location[0][1], self.list_location[0][2]))
-                # self.followPath(self.list_location[:points_to_cover], self.fromPosition, frame) # TODO uncomment this
-                self.followPath(self.list_location, self.fromPosition, frame)
-                self.list_location = self.list_location[points_to_cover:]# TODO uncomment this
+            currentState = self.drone.get_state()
+            currentState[0] = 0
+            currentState[1] = 0
+            currentState[2] = 0
+            currentTorque = self.drone.get_torques_and_thrust()
+            currentStateC = (ctypes.c_double * len(currentState))(*currentState)
+            currentTorqueC = (ctypes.c_double * len(currentTorque))(*currentTorque)
+
+            pathLength = ctypes.c_int()                     # is set to true if a path is found, false otherwise
+            visualize = ctypes.c_bool(self.simulation)      # True if the pathplanning should be visualized using opencv. This can be used for debug purposes.
+            trajectory = self.path_planning(ctypes.pointer(currentStateC), ctypes.pointer(currentTorqueC), ctypes.pointer(pathLength), visualize)
+            ncol = int(pathLength.value)      # Size of the planned path.
+            nrow = 17
+
+
+            if pathLength.value != 0:
+                self.drone.set_home_location()                  # Reset EKF origin for further computations.
+                frame = mavutil.mavlink.MAV_FRAME_LOCAL_NED     # Define the frame to use (local NED w.r.t. EKF origin).
+                print("Found path")
+                list_location = []
+                LocationTuples = []
+                for i in range(nrow):
+                    # (x, y, z) waypoints w.r.t. the original position of the drone are
+                    # parsed at column 0, 4 and 8 of the computed path.
+                    # North is in the z direction, east is in the x direction and down is in the y direction.
+                    LocationTuples.append((matrix_index(trajectory, ncol, 0, i), matrix_index(
+                        trajectory, ncol, 1, i), matrix_index(trajectory, ncol, 2, i)))
+                    # For all the waypoints recoreded, convert them from local NED w.r.t.
+                    # the heading of the drone to global NED (rotating axes w.r.t. yaw angle).
+                    list_location = LocationTuples
+
+                print(trajectory[0])
+                print(trajectory[1])
+                print(list_location)
+
+                self.followPath(list_location[:points_to_cover], frame)
+                list_location = list_location[points_to_cover:]
             else:
                 # self.logger.debug("Could not find path")
                 if len(self.list_location) > 0:
@@ -189,7 +219,7 @@ class flight():
 
 # Method for indexing array as if it is a matrix.
 def matrix_index(a, rowsize, m, n):
-    return(a[rowsize * n + m])
+    return(a[rowsize * m + n])
 
 
 if __name__ == "__main__":
