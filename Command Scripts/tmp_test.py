@@ -1,6 +1,8 @@
+import math
+
 import configs
 from cyclone import Cyclone
-from dronekit import LocationGlobalRelative, LocationLocal
+from dronekit import LocationGlobalRelative, LocationLocal, Attitude
 from pymavlink import mavutil
 import argparse
 import time
@@ -40,6 +42,7 @@ drone.obtain_home_location()
 if simulate:
     groundHeight =drone.vehicle.location.global_relative_frame.alt
     drone.arm_and_takeoff(groundHeight + 5)
+    drone.obtain_home_location()
 else:
     drone.wait_for_user()
 #drone.set_home_location()
@@ -47,13 +50,22 @@ else:
 #time.sleep(10)
 drone.set_airspeed(5)
 startPosition = drone.vehicle.location.local_frame
+ang = drone.vehicle.attitude
+print("Roll, Pitch, Yaw: {}, {}, {}".format(ang.roll, ang.pitch, ang.yaw))
 print("Initialized")
 #drone.goto_global_NED(0, 5, 0)
-drone.goto_local_NED(startPosition.north + 5, startPosition.east + 0, startPosition.down -5, mavutil.mavlink.MAV_FRAME_LOCAL_NED)
+rotated1 =drone.rotate_location(LocationLocal(5,0,-5), Attitude(0,ang.yaw,0))
+point1 = drone.translate_location(rotated1, startPosition)
+point2 = drone.translate_location(drone.rotate_location(LocationLocal(5,5,-5), Attitude(0,ang.yaw,0)), startPosition)
+point3 = drone.translate_location(drone.rotate_location(LocationLocal(5,5,0), Attitude(0,ang.yaw,0)), startPosition)
+print("Point1: {}, {}, {}".format(rotated1.north, rotated1.east, rotated1.down))
+print("Point2: {}, {}, {}".format(point2.north, point2.east, point2.down))
+print("Point3: {}, {}, {}".format(point3.north, point3.east, point3.down))
+drone.goto_local_NED(point1.north, point1.east, point1.down, mavutil.mavlink.MAV_FRAME_LOCAL_NED)
 print(drone.vehicle.location.local_frame)
-drone.goto_local_NED(startPosition.north + 5, startPosition.east + 5, startPosition.down -5, mavutil.mavlink.MAV_FRAME_LOCAL_NED)
+drone.goto_local_NED(point2.north, point2.east, point2.down, mavutil.mavlink.MAV_FRAME_LOCAL_NED)
 print(drone.vehicle.location.local_frame)
-drone.goto_local_NED(startPosition.north + 5, startPosition.east + 5, startPosition.down + 0, mavutil.mavlink.MAV_FRAME_LOCAL_NED)
+drone.goto_local_NED(point3.north, point3.east, point3.down, mavutil.mavlink.MAV_FRAME_LOCAL_NED)
 print(drone.vehicle.location.local_frame)
 
 drone.obtain_home_location()

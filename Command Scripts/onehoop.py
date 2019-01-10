@@ -147,7 +147,7 @@ class flight():
             currentTorqueC = (ctypes.c_double * len(currentTorque))(*currentTorque)
 
             pathLength = ctypes.c_int()                     # is set to true if a path is found, false otherwise
-            visualize = ctypes.c_bool(self.simulation)      # True if the pathplanning should be visualized using opencv. This can be used for debug purposes.
+            visualize = ctypes.c_bool(True)      # True if the pathplanning should be visualized using opencv. This can be used for debug purposes.
             trajectory = self.path_planning(ctypes.pointer(currentStateC), ctypes.pointer(currentTorqueC), ctypes.pointer(pathLength), visualize)
             ncol = int(pathLength.value)      # Size of the planned path.
             nrow = 17
@@ -186,10 +186,11 @@ class flight():
     def getPath(self):
         self.vision.pathLock.acquire(True) # block until lock is aquired
         if self.vision.newPath:
+            self.fromPosition = self.vision.fromPosition
+            self.fromAttitude = self.vision.fromAttitude
             self.list_location = self.vision.path[:]
             # self.logger.debug("Last location is: {}, {}, {}".format(list_location[99][0], list_location[99][1], list_location[99][2]))
             self.vision.newPath = False
-            self.fromPosition = self.vision.fromPosition
             self.vision.pathLock.release()
             return True
         else:

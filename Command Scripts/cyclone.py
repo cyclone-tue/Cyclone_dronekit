@@ -204,7 +204,7 @@ class Cyclone(object):
         vel = self.vehicle.velocity                     # in body frame i guess
         ang = self.vehicle.attitude                     # yaw is zero at north maybe? what is order of rotations.
         heading = self.vehicle.heading                  # should be used
-        return [float(pos.north), float(pos.east), float(pos.down), float(vel[0]), float(vel[1]), float(vel[2]), float(ang.roll), float(ang.pitch), float(0), float(0), float(0), float(0)]
+        return [float(pos.north), float(pos.east), float(pos.down), float(vel[0]), float(vel[1]), float(vel[2]), float(ang.roll), float(ang.pitch), float(ang.yaw), float(0), float(0), float(0)]
 
     def get_torques_and_thrust(self):       # unavailable i guess.
         return [0,0,0,0]
@@ -507,17 +507,18 @@ class Cyclone(object):
             self.logger.info("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
             org_yaw = self.vehicle.attitude.yaw
             global_NED = self.local_NED_to_global_NED(dNorth, dEast, dDown, org_yaw)
-            targetOffset = LocationLocal(dNorth, dEast, dDown)
+            targetLocation = LocationLocal(dNorth, dEast, dDown)
             #targetLocation = LocationLocal(startLocation.north + global_NED[0], startLocation.east + global_NED[1], startLocation.down + global_NED[2])
             #targetLocation = LocationLocal(startLocation.north + targetOffset.north, startLocation.east + targetOffset.east, startLocation.down + targetOffset.down)
-            self.logger.info('targetOffset: {}, {}, {}'.format(targetOffset.north, targetOffset.east, targetOffset.down))
+            self.logger.info('targetLocation: {}, {}, {}'.format(targetLocation.north, targetLocation.east, targetLocation.down))
             # targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
             #distanceVector = LocationLocal(targetOffset.north - (startLocation.north - self.local_home.north), targetOffset.east - (startLocation.east - self.local_home.east), targetOffset.down - (startLocation.down - self.local_home.down))
-            distanceVector = LocationLocal(targetOffset.north - (startLocation.north), targetOffset.east - (startLocation.east ), targetOffset.down - (startLocation.down ))
+            distanceVector = LocationLocal(targetLocation.north - (startLocation.north), targetLocation.east - (startLocation.east ), targetLocation.down - (startLocation.down ))
+            self.logger.info('Distance to fly: {}, {}, {}'.format(distanceVector.north, distanceVector.east, distanceVector.down))
 
             targetDistance = math.sqrt(distanceVector.north**2 + distanceVector.east**2 + distanceVector.down**2)
             self.logger.info("Distance to fly: {}".format(targetDistance))
-            self.set_position_target_local_NED(targetOffset.north, targetOffset.east, targetOffset.down, frame)
+            self.set_position_target_local_NED(targetLocation.north, targetLocation.east, targetLocation.down, frame)
 
         elif (frame == mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT):
             startLocation = self.vehicle.location.global_relative_frame
@@ -654,3 +655,39 @@ class Cyclone(object):
     def wait_for_user(self):
         self.logger.info("Press key to continue.")
         raw_input("")
+
+    def rotate_location(self, loc, ang):
+        """
+        Is currently only implemented for yaw rotations
+        TODO: Add support for 3 rotation axis
+        :param loc: a LocationLocal representation that has to be rotated
+        :param ang: The Attitude for the rotation
+        :return: LocationLocal representing the rotated element
+        """
+        n = loc.north
+        e = loc.east
+        d = loc.down
+        r = ang.roll
+        p = ang.pitch
+        y = ang.yaw
+        # First line of the rotation matrix applied to loc
+        north = n*math.cos(y)*math.cos(p) + e*(math.cos(y)*math.sin(r)*math.sin(p) - math.cos(p)*math.sin(y)) + d*(math.sin(r)*math.sin(y)+math.cos(r)*math.cos(y)*math.sin(p))
+        #Second line
+        east = n*math.cos(p)*math.sin(y) + e*(math.cos(r)*math.cos(y) + math.sin(r)*math.sin(y)*math.sin(p)) + d*(math.cos(r)*math.sin(y)*math.sin(p) - math.cos(y)*math.sin(r))
+        #Third line
+        down = n*-math.sin(p) + e*math.cos(p)*math.sin(r) + d*math.cos(r)*math.cos(p)
+
+        #north = n*math.cos(y) - e*math.sin(y)
+        #east = n*math.sin(y) + e*math.cos(y)
+        #down = d
+
+        return LocationLocal(north, east, down)
+
+    def translate_location(self, fromLoc, translation):
+        """
+
+        :param fromLoc:LocationLocal representing the starting position
+        :param toLoc: LocationLocal representing the translation
+        :return: LocationLocal representing the translated location
+        """
+        return LocationLocal(fromLoc.north+translation.north, fromLoc.east+ translation.east, fromLoc.down + translation.down)

@@ -1,6 +1,6 @@
 import threading
 import ctypes
-from dronekit import LocationLocal
+from dronekit import LocationLocal, Attitude
 
 class VisionThread(threading.Thread):
 
@@ -15,6 +15,7 @@ class VisionThread(threading.Thread):
         self.cameraID = cameraID
         self.newPath = False
         self.fromPosition = None
+        self.fromAttitude = None
         self.pathLock = threading.Lock()
         self.logging = logging
         self.stop = threading.Event()
@@ -51,7 +52,9 @@ class VisionThread(threading.Thread):
                 self.logging.debug("Found path")
                 self.pathLock.acquire(True) # block until lock is aquired
                 fromLocation = self.drone.vehicle.location.local_frame
+                fromRotation = self.drone.vehicle.attitude
                 self.fromPosition = LocationLocal(fromLocation.north, fromLocation.east, fromLocation.down)
+                self.fromAttitude = Attitude(0, fromRotation.yaw, 0)
                 self.path = []
                 self.newPath = True
                 for i in range(nrow):
