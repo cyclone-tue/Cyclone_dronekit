@@ -42,4 +42,7 @@ drone.goto_local_NED(5, 5, -5, mavutil.mavlink.MAV_FRAME_LOCAL_NED)
 print(drone.vehicle.location.local_frame)
 drone.goto_local_NED(5, 5, 0, mavutil.mavlink.MAV_FRAME_LOCAL_NED)
 print(drone.vehicle.location.local_frame)
+
+
+
 del drone
