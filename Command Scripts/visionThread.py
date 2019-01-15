@@ -32,7 +32,7 @@ class VisionThread(threading.Thread):
         camera = cameraID
         calibration = calibrationFile
         self.logging.info("Ran setup using camera={} and calibration={}".format(camera, calibration))
-        setup(camera, calibration)
+        setup(calibration)
         self.path_planner = lib.output_to_py
         self.path_planner.restype = ctypes.POINTER(ctypes.c_double)
         self.cleanup = lib.cleanup

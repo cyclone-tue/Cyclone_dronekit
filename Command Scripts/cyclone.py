@@ -34,6 +34,8 @@ class Cyclone(object):
         self.meters_per_degree = configs.meters_per_degree
         self.sleep_time = configs.sleep_time
         self.distance_threshold = configs.distance_threshold
+        self.distance_percentage_threshold = configs.distance_threshold_percent
+        self.minimum_distance_threshold = configs.minimal_target_distance
         self.coordinate_threshold = configs.coordinate_threshold
 
     def __del__(self):
@@ -490,7 +492,7 @@ class Cyclone(object):
 
     def goto_local_NED(self, dNorth, dEast, dDown, frame):
         """Actuation method for a local NED target.
-        It actuates the drone to fly to a local NED location (NED w.r.t. heading of the drone).
+        It actuates the drone to fly to a local NED location (NED w.r.t. heading of the home location).
         TODO: debug: when using set_position_target_local_NED, dEast is not performed
         Args:
             dNorth: Target position in terms of North(Front) to the drone [m]
@@ -536,14 +538,22 @@ class Cyclone(object):
             # remainingDistance is the distance covered along the straight path from the startLocation of this navigation.
             travelledDistance = self.get_distance_metres_EKF(startLocation, currentLocation) #* math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
             self.logger.debug("Travelled distance is {}".format(travelledDistance))
-            remainingDistance = targetDistance - travelledDistance
+            #remainingDistance = targetDistance - travelledDistance
             #remainingDistance = self.get_distance_metres_EKF(currentLocation, targetOffset)
-            self.logger.debug("Distance to target: {}".format(remainingDistance))
+            #self.logger.debug("Distance to target: {}".format(remainingDistance))
             self.logger.debug("Current location: {}, {}, {}".format(currentLocation.north, currentLocation.east, currentLocation.down))
-            if remainingDistance <= self.distance_threshold:
+            if targetDistance == 0:
+                percentage = 1
+            else:
+                percentage = travelledDistance/targetDistance
+            self.logger.debug("Travelled percentage: {}".format(percentage*100))
+            #self.logger.debug("Travelled percentage: {}".format(travelledDistance/targetDistance*100))
+            if percentage >= self.distance_percentage_threshold:
                 self.logger.info("Reached target")
                 break
             time.sleep(self.sleep_time)
+
+
 
     def goto_wp_global(self, targetLocation, func=None):
         """Actuation method for global waypoint.

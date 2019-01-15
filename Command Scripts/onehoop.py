@@ -1,4 +1,4 @@
-from dronekit import LocationGlobalRelative
+from dronekit import LocationGlobalRelative, LocationLocal
 
 import configs
 from pymavlink import mavutil
@@ -62,7 +62,7 @@ class flight():
             self.drone.awake_script() # Wait for guided mode if this is not a simulation.
         self.drone.wait_for_user()
         self.drone.obtain_home_location() # Download the home location from the drone.
-        self.drone.set_airspeed(5) # Set the maximum horizontal airspeed to 5 m/s.
+        self.drone.set_groundspeed(5) # Set the maximum horizontal airspeed to 5 m/s.
 
         while True:
             #self.drone.obtain_home_location()
@@ -194,18 +194,27 @@ class flight():
 
     def followPath(self, list_location, frame):
         for i in range(0, len(list_location)):
+
             # Given the global NED waypoints w.r.t. the home location (EKF origin), navigate the drone by specifying the frame.
 
             #self.drone.goto_local_NED(list_location[i][0], list_location[i][1], list_location[i][2], frame)  #waits until target is reached
             # Offset calculation for positions
-            dNorth = list_location[i][0]# - (self.drone.vehicle.location.local_frame.north - startPosition.north)
-            dEast = list_location[i][1]# - (self.drone.vehicle.location.local_frame.east - startPosition.east)
-            dDown = list_location[i][2]# - (self.drone.vehicle.location.local_frame.down - startPosition.down)
-            self.logger.info("Point {} out of {}".format(i, len(list_location)))
-            self.logger.info('Goto ({}, {}, {})'.format(dNorth, dEast, dDown))
-            # self.logger.info("Start location ({}, {}, {})".format(startLocation.north, startLocation.east, startLocation.down))
-            self.drone.goto_local_NED(dNorth, dEast, dDown, frame) # Waits until target is reached
-        return
+            posNorth = list_location[i][0]# - (self.drone.vehicle.location.local_frame.north - startPosition.north)
+            posEast = list_location[i][1]# - (self.drone.vehicle.location.local_frame.east - startPosition.east)
+            posDown = list_location[i][2]# - (self.drone.vehicle.location.local_frame.down - startPosition.down)
+
+            currentLocation = self.drone.vehicle.location.local_frame
+            targetLocation = LocationLocal(posNorth, posEast, posDown)
+
+            distance = self.drone.get_distance_metres_EKF(currentLocation, targetLocation)
+            if distance >= self.drone.minimum_distance_threshold:
+                self.logger.info("Point {} out of {}".format(i, len(list_location)))
+                self.logger.info('Goto ({}, {}, {})'.format(posNorth, posEast, posDown))
+                # self.logger.info("Start location ({}, {}, {})".format(startLocation.north, startLocation.east, startLocation.down))
+                self.drone.goto_local_NED(posNorth, posEast, posDown, frame) # Waits until target is reached
+            else:
+                self.logger.warn("Point {} out of {} not considered. Distance too close.".format(i, len(list_location)))
+                self.logger.info("Distance was {} meter".format(distance))
 
 
 
