@@ -56,13 +56,16 @@ class flight():
         """
         if self.simulation:
             # self.drone.set_home_location()
-            self.drone.arm_and_takeoff(1.28) # Take of automatically if this is a simulation.
+            pass
+            #self.drone.arm_and_takeoff(1.28) # Take of automatically if this is a simulation.
         else:
             self.drone.awake_script() # Wait for guided mode if this is not a simulation.
+        self.drone.wait_for_user()
         self.drone.obtain_home_location() # Download the home location from the drone.
         self.drone.set_airspeed(5) # Set the maximum horizontal airspeed to 5 m/s.
 
         while True:
+            #self.drone.obtain_home_location()
             self.goToHoop() # Try to go to the hoop. This only exits if we leave guided mode.
             if not self.simulation:
                 self.drone.awake_script() # Wait for the drone to go into guided mode.
@@ -138,49 +141,37 @@ class flight():
         #startPosition = (0, 0, 0) # The position from which the path planning was calculated. All positions from the path are relative to this point.
         while self.drone.vehicle.mode.name == "GUIDED":
 
-            currentState = self.drone.get_state()
-            currentState[0] = 0
-            currentState[1] = 0
-            currentState[2] = 0
-            currentTorque = self.drone.get_torques_and_thrust()
-            currentStateC = (ctypes.c_double * len(currentState))(*currentState)
-            currentTorqueC = (ctypes.c_double * len(currentTorque))(*currentTorque)
-
-            pathLength = ctypes.c_int()                     # is set to true if a path is found, false otherwise
-            visualize = ctypes.c_bool(True)      # True if the pathplanning should be visualized using opencv. This can be used for debug purposes.
-            trajectory = self.path_planning(ctypes.pointer(currentStateC), ctypes.pointer(currentTorqueC), ctypes.pointer(pathLength), visualize)
-            ncol = int(pathLength.value)      # Size of the planned path.
-            nrow = 17
 
 
-            if pathLength.value != 0:
-                self.drone.set_home_location()                  # Reset EKF origin for further computations.
+
+
+            if self.getPath():
+                #self.drone.set_home_location()                  # Reset EKF origin for further computations.
                 frame = mavutil.mavlink.MAV_FRAME_LOCAL_NED     # Define the frame to use (local NED w.r.t. EKF origin).
                 print("Found path")
-                list_location = []
                 LocationTuples = []
-                for i in range(nrow):
+                #for i in range(nrow):
                     # (x, y, z) waypoints w.r.t. the original position of the drone are
                     # parsed at column 0, 4 and 8 of the computed path.
                     # North is in the z direction, east is in the x direction and down is in the y direction.
-                    LocationTuples.append((matrix_index(trajectory, ncol, 0, i), matrix_index(
-                        trajectory, ncol, 1, i), matrix_index(trajectory, ncol, 2, i)))
+                    #LocationTuples.append((matrix_index(trajectory, ncol, 0, i), matrix_index(
+                       # trajectory, ncol, 1, i), matrix_index(trajectory, ncol, 2, i)))
                     # For all the waypoints recoreded, convert them from local NED w.r.t.
                     # the heading of the drone to global NED (rotating axes w.r.t. yaw angle).
-                    list_location = LocationTuples
+                    #list_location = LocationTuples
 
-                print(trajectory[0])
-                print(trajectory[1])
-                print(list_location)
+                #print(trajectory[0])
+                #print(trajectory[1])
+                #print(list_location)
 
-                self.followPath(list_location[:points_to_cover], frame)
-                list_location = list_location[points_to_cover:]
+                self.followPath(self.list_location[:points_to_cover], frame)
+                self.list_location = self.list_location[points_to_cover:]
             else:
                 # self.logger.debug("Could not find path")
                 if len(self.list_location) > 0:
                     pass
                     # self.logger.info("Following previous path")
-                    self.followPath(self.list_location[:points_to_cover], self.fromPosition, frame) #TODO uncomment this
+                    self.followPath(self.list_location[:points_to_cover], frame) #TODO uncomment this
                     self.list_location = self.list_location[:points_to_cover] #TODO uncomment this
 
     def getPath(self):
@@ -201,15 +192,15 @@ class flight():
         self.getPath()
         self.list_location = []
 
-    def followPath(self, list_location, startLocation, frame):
+    def followPath(self, list_location, frame):
         for i in range(0, len(list_location)):
             # Given the global NED waypoints w.r.t. the home location (EKF origin), navigate the drone by specifying the frame.
 
             #self.drone.goto_local_NED(list_location[i][0], list_location[i][1], list_location[i][2], frame)  #waits until target is reached
             # Offset calculation for positions
-            dNorth = list_location[i][0] + startLocation.north# - (self.drone.vehicle.location.local_frame.north - startPosition.north)
-            dEast = list_location[i][1] + startLocation.east# - (self.drone.vehicle.location.local_frame.east - startPosition.east)
-            dDown = list_location[i][2] + startLocation.down# - (self.drone.vehicle.location.local_frame.down - startPosition.down)
+            dNorth = list_location[i][0]# - (self.drone.vehicle.location.local_frame.north - startPosition.north)
+            dEast = list_location[i][1]# - (self.drone.vehicle.location.local_frame.east - startPosition.east)
+            dDown = list_location[i][2]# - (self.drone.vehicle.location.local_frame.down - startPosition.down)
             self.logger.info("Point {} out of {}".format(i, len(list_location)))
             self.logger.info('Goto ({}, {}, {})'.format(dNorth, dEast, dDown))
             # self.logger.info("Start location ({}, {}, {})".format(startLocation.north, startLocation.east, startLocation.down))
