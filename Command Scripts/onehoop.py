@@ -56,16 +56,15 @@ class flight():
         """
         if self.simulation:
             # self.drone.set_home_location()
-            pass
+            self.drone.wait_for_user()
             #self.drone.arm_and_takeoff(1.28) # Take of automatically if this is a simulation.
         else:
             self.drone.awake_script() # Wait for guided mode if this is not a simulation.
-        self.drone.wait_for_user()
         self.drone.obtain_home_location() # Download the home location from the drone.
         self.drone.set_groundspeed(5) # Set the maximum horizontal airspeed to 5 m/s.
 
         while True:
-            #self.drone.obtain_home_location()
+            self.drone.obtain_home_location()
             self.goToHoop() # Try to go to the hoop. This only exits if we leave guided mode.
             if not self.simulation:
                 self.drone.awake_script() # Wait for the drone to go into guided mode.
