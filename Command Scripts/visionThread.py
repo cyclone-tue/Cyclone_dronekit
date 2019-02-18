@@ -41,6 +41,8 @@ class VisionThread(threading.Thread):
     def run(self):
         self.logging.info("Starting vision thread")
         self.initVision(self.calibrationFile, cameraID=self.cameraID)
+        self.logging.info("Waiting for guided mode")
+        self.drone.awake_script()
         while not self.stop.isSet():
             currentState = self.drone.get_state()
             currentState[0] = 0
