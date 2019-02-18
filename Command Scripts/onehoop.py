@@ -140,10 +140,6 @@ class flight():
         #startPosition = (0, 0, 0) # The position from which the path planning was calculated. All positions from the path are relative to this point.
         while self.drone.vehicle.mode.name == "GUIDED":
 
-
-
-
-
             if self.getPath():
                 #self.drone.set_home_location()                  # Reset EKF origin for further computations.
                 frame = mavutil.mavlink.MAV_FRAME_LOCAL_NED     # Define the frame to use (local NED w.r.t. EKF origin).
