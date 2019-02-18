@@ -209,7 +209,7 @@ class Cyclone(object):
         return [float(pos.north), float(pos.east), float(pos.down), float(vel[0]), float(vel[1]), float(vel[2]), float(ang.roll), float(ang.pitch), float(ang.yaw), float(0), float(0), float(0)]
 
     def get_torques_and_thrust(self):       # unavailable i guess.
-        return [0,0,0,0]
+        return [20,0,0,0]
 
     # Location/Distance estimations
 

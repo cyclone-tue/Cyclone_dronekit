@@ -46,6 +46,16 @@ class VisionThread(threading.Thread):
             currentState[0] = 0
             currentState[1] = 0
             currentState[2] = 0
+            currentState[3] = 0
+            currentState[4] = 0
+            currentState[5] = 0
+            currentState[6] = 0
+            currentState[7] = 0
+            currentState[8] = 0
+            currentState[9] = 0
+            currentState[10] = 0
+            currentState[11] = 0
+
             currentTorque = self.drone.get_torques_and_thrust()
             currentStateC = (ctypes.c_double * len(currentState))(*currentState)
             currentTorqueC = (ctypes.c_double * len(currentTorque))(*currentTorque)
