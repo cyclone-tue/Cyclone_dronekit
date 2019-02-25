@@ -6,11 +6,13 @@ from dronekit import connect, Vehicle, VehicleMode, LocationGlobal, LocationGlob
 from pymavlink import mavutil
 import time
 import math
+import logging
+import functools
 
 
 class Cyclone(object):
 
-    def __init__(self, connection_string, configs):
+    def __init__(self, connection_string, configs, handlers=[]):
         """Constructor.
         This is the contructor for the Cyclone class.
         It connects to the drone and initialize the parameters set in configs.
@@ -21,16 +23,20 @@ class Cyclone(object):
         Returns:
             nothing
         """
-        print("Connecting to vehicle using: " + connection_string )
+        self.logger = logging.Logger('Cyclone', level=logging.DEBUG)
+        for handler in handlers:
+            self.logger.addHandler(handler)
+        self.logger.debug("Connecting to vehicle using: " + connection_string )
         self.vehicle = connect(connection_string, wait_ready=True)
-        print("Connected to the vehicle...")
+        self.logger.info("Connected to the vehicle...")
         self.doPause = False
         self.earth_radius = configs.earth_radius
         self.meters_per_degree = configs.meters_per_degree
         self.sleep_time = configs.sleep_time
         self.distance_threshold = configs.distance_threshold
+        self.distance_percentage_threshold = configs.distance_threshold_percent
+        self.minimum_distance_threshold = configs.minimal_target_distance
         self.coordinate_threshold = configs.coordinate_threshold
-        self.local_home = LocationLocal(0, 0, 0)
 
     def __del__(self):
         """Destructor.
@@ -70,7 +76,7 @@ class Cyclone(object):
 
     def mode_guided(self):
         """Guided mode switch.
-        It switches the drone to guided mode.
+        It switches the drone to guided mode.http://book.pythontips.com/en/latest/lambdas.html
 
         Args:
             nothing
@@ -79,7 +85,7 @@ class Cyclone(object):
         """
         self.vehicle.mode = VehicleMode("GUIDED")
         while not self.vehicle.mode.name == 'GUIDED':
-            print("Changing into GUIDED mode")
+            self.logger.info("Changing into GUIDED mode")
             time.sleep(self.sleep_time)
 
     def mode_auto(self):
@@ -93,7 +99,7 @@ class Cyclone(object):
         """
         self.vehicle.mode = VehicleMode("AUTO")
         while not self.vehicle.mode.name == 'AUTO':
-            print("Switching to AUTO mode...")
+            self.logger.info("Switching to AUTO mode...")
             time.sleep(self.sleep_time)
 
     def mode_rtl(self):
@@ -107,7 +113,7 @@ class Cyclone(object):
         """
         self.vehicle.mode = VehicleMode("RTL")
         while not self.vehicle.mode.name == "RTL":
-            print('Switching to RTL mode...')
+            self.logger.info('Switching to RTL mode...')
             time.sleep(self.sleep_time)
 
     def arm_check(self):
@@ -119,17 +125,24 @@ class Cyclone(object):
         Returns:
             nothing
         """
+        self.logger.info("Waiting for vehicle to initialise...")
         while not self.vehicle.is_armable:
-            print("Waiting for vehicle to initialise...")
             time.sleep(self.sleep_time)
 
-        print("Drone is armable, please arm the drone.")
+        self.logger.info("Drone is armable, please arm the drone.")
 
+        self.logger.info("Waiting for arming the drone")
         while not self.vehicle.armed:
-            print("Waiting for arming the drone")
             time.sleep(self.sleep_time)
 
-        print("Drone is armed.")
+        self.logger.info("Drone is armed.")
+
+    def latitude_offset_to_meters(self, latitide_difference):
+        return latitide_difference * 111111
+
+    def longitude_offset_to_meters(self, longitude_difference, latitude_point1):
+        return longitude_difference * 111111*math.cos(math.radians(latitude_point1))
+
 
     def awake_script(self):
         """Wakes up the script.
@@ -141,8 +154,8 @@ class Cyclone(object):
         Returns:
             nothing
         """
+        self.logger.info("Switch to GUIDED mode to awake the script")
         while not self.vehicle.mode.name == 'GUIDED':
-            print("(Main): Switch to GUIDED mode to awake the script")
             time.sleep(self.sleep_time)
 
     def pause(self):
@@ -169,18 +182,34 @@ class Cyclone(object):
 
     def obtain_home_location(self):
         """Wait for the home location to be downloaded from the drone."""
+        self.logger.info('Obtaining home location...')
         while not self.vehicle.home_location:
             cmds = self.vehicle.commands
             cmds.download()
             cmds.wait_ready()
             if not self.vehicle.home_location:
-                print('Obtaining home location...')
-        print("Home Location: %s" % self.vehicle.home_location)
+                pass
+        self.logger.info("Home Location: %s" % self.vehicle.home_location)
 
-    def set_home_location(self):
-        """Define the current location of the drone as the home location."""
-        self.vehicle.home_location = self.vehicle.location.global_frame
-        self.local_home = self.vehicle.location.local_frame
+    def set_home_location(self, location=None):
+        """Define the current location of the drone as the home location. Or use the given global frame point."""
+        if location:
+            self.vehicle.home_location = location
+        else:
+            self.vehicle.home_location = self.vehicle.location.global_frame
+
+
+
+
+    def get_state(self):                # check this, its still wrong
+        pos = self.vehicle.location.local_frame         # north, east, down
+        vel = self.vehicle.velocity                     # in body frame i guess
+        ang = self.vehicle.attitude                     # yaw is zero at north maybe? what is order of rotations.
+        heading = self.vehicle.heading                  # should be used
+        return [float(pos.north), float(pos.east), float(pos.down), float(vel[0]), float(vel[1]), float(vel[2]), float(ang.roll), float(ang.pitch), float(ang.yaw), float(0), float(0), float(0)]
+
+    def get_torques_and_thrust(self):       # unavailable i guess.
+        return [20,0,0,0]
 
 
 
@@ -293,26 +322,31 @@ class Cyclone(object):
         Returns:
             nothing
         """
-        print("Basic pre-arm checks")
+        self.logger.info("Basic pre-arm checks")
+        self.logger.debug(" Waiting for vehicle to initialise...")
         while not self.vehicle.is_armable:
-            print(" Waiting for vehicle to initialise...")
             time.sleep(self.sleep_time)
 
-        print("Arming motors")
+        self.logger.info("Arming motors")
         self.vehicle.mode = VehicleMode("GUIDED")
         self.vehicle.armed = True
 
+        self.logger.debug(" Waiting for arming...")
         while not self.vehicle.armed:
-            print(" Waiting for arming...")
             time.sleep(self.sleep_time)
+        target = aTargetAltitude
+        if target < 0:
+            target = target * 1.05
+        else:
+            target = target * 0.95
 
-        print("Taking off!")
+        self.logger.info("Taking off to {} meters!".format(aTargetAltitude))
         self.vehicle.simple_takeoff(aTargetAltitude)  # Take off to target altitude
 
         while True:
-            print(" Altitude: ", self.vehicle.location.global_relative_frame.alt)
-            if self.vehicle.location.global_relative_frame.alt >= aTargetAltitude*0.95:
-                print("Reached target altitude")
+            self.logger.info(" Altitude: {}".format(self.vehicle.location.global_relative_frame.alt))
+            if self.vehicle.location.global_relative_frame.alt >= target:
+                self.logger.info("Reached target altitude")
                 break
             time.sleep(self.sleep_time)
 
@@ -452,8 +486,8 @@ class Cyclone(object):
             targetLocation = self.global_NED_to_wp(startLocation, dNorth, dEast, dDown)
             targetDistance = self.get_distance_metres(startLocation, targetLocation)
             self.goto_wp_global(targetLocation, func)
-        print("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
-        print("TargetLocation: {}, {}, {}".format(targetLocation.north, targetLocation.east, targetLocation.down))
+        self.logger.info("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
+        self.logger.info("TargetLocation: {}, {}, {}".format(targetLocation.north, targetLocation.east, targetLocation.down))
         while self.vehicle.mode.name == "GUIDED":  # Stop action if we are no longer in guided mode.
             currentLocation = self.vehicle.location.local_frame
             #remainingDistance = self.get_distance_metres_EKF(currentLocation, targetLocation)
@@ -461,16 +495,16 @@ class Cyclone(object):
                 remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation) * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
             elif func == 'mav':
                 remainingDistance = self.get_distance_metres(currentLocation, targetLocation)
-            print("Distance to target: {}".format(remainingDistance))
+            self.logger.debug("Distance to target: {}".format(remainingDistance))
             if remainingDistance <= self.distance_threshold:
-                print("Reached target")
+                self.logger.info("Reached target")
                 break
             time.sleep(self.sleep_time)
 
 
     def goto_local_NED(self, dNorth, dEast, dDown, frame):
         """Actuation method for a local NED target.
-        It actuates the drone to fly to a local NED location (NED w.r.t. heading of the drone).
+        It actuates the drone to fly to a local NED location (NED w.r.t. heading of the home location).
         TODO: debug: when using set_position_target_local_NED, dEast is not performed
         Args:
             dNorth: Target position in terms of North(Front) to the drone [m]
@@ -482,19 +516,23 @@ class Cyclone(object):
             nothing
         """
         if (frame == mavutil.mavlink.MAV_FRAME_LOCAL_NED or mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED):
-            startLocation = self.vehicle.location.local_frame
-            print("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
+            localTemp = self.vehicle.location.local_frame
+            startLocation = LocationLocal(localTemp.north, localTemp.east, localTemp.down)
+            self.logger.info("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
             org_yaw = self.vehicle.attitude.yaw
             global_NED = self.local_NED_to_global_NED(dNorth, dEast, dDown, org_yaw)
-            targetOffset = LocationLocal(dNorth, dEast, dDown)
+            targetLocation = LocationLocal(dNorth, dEast, dDown)
             #targetLocation = LocationLocal(startLocation.north + global_NED[0], startLocation.east + global_NED[1], startLocation.down + global_NED[2])
             #targetLocation = LocationLocal(startLocation.north + targetOffset.north, startLocation.east + targetOffset.east, startLocation.down + targetOffset.down)
-            print('targetOffset: {}, {}, {}'.format(targetOffset.north, targetOffset.east, targetOffset.down))
+            self.logger.info('targetLocation: {}, {}, {}'.format(targetLocation.north, targetLocation.east, targetLocation.down))
             # targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
-            distanceVector = LocationLocal(targetOffset.north - (startLocation.north - self.local_home.north), targetOffset.east - (startLocation.east - self.local_home.east), targetOffset.down - (startLocation.down - self.local_home.down))
+            #distanceVector = LocationLocal(targetOffset.north - (startLocation.north - self.local_home.north), targetOffset.east - (startLocation.east - self.local_home.east), targetOffset.down - (startLocation.down - self.local_home.down))
+            distanceVector = LocationLocal(targetLocation.north - (startLocation.north), targetLocation.east - (startLocation.east ), targetLocation.down - (startLocation.down ))
+            self.logger.info('Distance to fly: {}, {}, {}'.format(distanceVector.north, distanceVector.east, distanceVector.down))
+
             targetDistance = math.sqrt(distanceVector.north**2 + distanceVector.east**2 + distanceVector.down**2)
-            print("Distance to fly: {}".format(targetDistance))
-            self.set_position_target_local_NED(targetOffset.north, targetOffset.east, targetOffset.down, frame)
+            self.logger.info("Distance to fly: {}".format(targetDistance))
+            self.set_position_target_local_NED(targetLocation.north, targetLocation.east, targetLocation.down, frame)
 
         elif (frame == mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT):
             startLocation = self.vehicle.location.global_relative_frame
@@ -510,14 +548,24 @@ class Cyclone(object):
             currentLocation = self.vehicle.location.local_frame
             # remainingDistance = self.get_distance_metres(self.vehicle.location.global_relative_frame, targetLocation)
             # remainingDistance is the distance covered along the straight path from the startLocation of this navigation.
-            remainingDistance = targetDistance - self.get_distance_metres_EKF(startLocation, currentLocation)# * math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
+            travelledDistance = self.get_distance_metres_EKF(startLocation, currentLocation) #* math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
+            self.logger.debug("Travelled distance is {}".format(travelledDistance))
+            #remainingDistance = targetDistance - travelledDistance
             #remainingDistance = self.get_distance_metres_EKF(currentLocation, targetOffset)
-            print("Distance to target: {}".format(remainingDistance))
-            print("Current location: {}, {}, {}".format(currentLocation.north, currentLocation.east, currentLocation.down))
-            if remainingDistance <= self.distance_threshold:
-                print("Reached target")
+            #self.logger.debug("Distance to target: {}".format(remainingDistance))
+            self.logger.debug("Current location: {}, {}, {}".format(currentLocation.north, currentLocation.east, currentLocation.down))
+            if targetDistance == 0:
+                percentage = 1
+            else:
+                percentage = travelledDistance/targetDistance
+            self.logger.debug("Travelled percentage: {}".format(percentage*100))
+            #self.logger.debug("Travelled percentage: {}".format(travelledDistance/targetDistance*100))
+            if percentage >= self.distance_percentage_threshold:
+                self.logger.info("Reached target")
                 break
             time.sleep(self.sleep_time)
+
+
 
     def goto_wp_global(self, targetLocation, func=None):
         """Actuation method for global waypoint.
@@ -541,10 +589,10 @@ class Cyclone(object):
 
         while self.vehicle.mode.name == "GUIDED":  # Stop action if we are no longer in guided mode.
             currentLocation = self.vehicle.location.global_relative_frame
-            print('Approaching target waypoint...')
-            print(currentLocation)
+            self.logger.debug('Approaching target waypoint...')
+            self.logger.debug(currentLocation)
             if (abs(targetLocation.lat - currentLocation.lat) * 1e7 <= self.coordinate_threshold) and (abs(targetLocation.lon - currentLocation.lon) * 1e7 <= self.coordinate_threshold):
-                print("Reached target")
+                self.logger.info("Reached target")
                 break
             time.sleep(self.sleep_time)
 
@@ -560,7 +608,7 @@ class Cyclone(object):
         Returns:
             cmds: Comamnds downloaded
         """
-        print('Downloading mission from the vehicle...')
+        self.logger.info('Downloading mission from the vehicle...')
         cmds = self.vehicle.commands
         cmds.download()
         cmds.wait_ready()
@@ -576,7 +624,7 @@ class Cyclone(object):
         Returns:
             missionlist: List of planned mission commands
         """
-        print('Modifying mission with the updated list of waypoints...')
+        self.logger.info('Modifying mission with the updated list of waypoints...')
         missionlist = []
         # Run Vision and Pathplanning, path = readPathPlanned()
         # for i in range(nrow):
@@ -599,7 +647,7 @@ class Cyclone(object):
         Returns:
             nothing
         """
-        print('Updating modified mission...')
+        self.logger.info('Updating modified mission...')
         cmds.clear()
         for cmd in missionlist:
             cmds.add(cmd)
@@ -625,3 +673,43 @@ class Cyclone(object):
         distancetopoint = self.get_distance_metres(
             self.vehicle.location.global_relative_frame, targetWaypointLocation)
         return distancetopoint
+
+    def wait_for_user(self):
+        self.logger.info("Press key to continue.")
+        raw_input("")
+
+    def rotate_location(self, loc, ang):
+        """
+        Is currently only implemented for yaw rotations
+        TODO: Add support for 3 rotation axis
+        :param loc: a LocationLocal representation that has to be rotated
+        :param ang: The Attitude for the rotation
+        :return: LocationLocal representing the rotated element
+        """
+        n = loc.north
+        e = loc.east
+        d = loc.down
+        r = ang.roll
+        p = ang.pitch
+        y = ang.yaw
+        # First line of the rotation matrix applied to loc
+        north = n*math.cos(y)*math.cos(p) + e*(math.cos(y)*math.sin(r)*math.sin(p) - math.cos(p)*math.sin(y)) + d*(math.sin(r)*math.sin(y)+math.cos(r)*math.cos(y)*math.sin(p))
+        #Second line
+        east = n*math.cos(p)*math.sin(y) + e*(math.cos(r)*math.cos(y) + math.sin(r)*math.sin(y)*math.sin(p)) + d*(math.cos(r)*math.sin(y)*math.sin(p) - math.cos(y)*math.sin(r))
+        #Third line
+        down = n*-math.sin(p) + e*math.cos(p)*math.sin(r) + d*math.cos(r)*math.cos(p)
+
+        #north = n*math.cos(y) - e*math.sin(y)
+        #east = n*math.sin(y) + e*math.cos(y)
+        #down = d
+
+        return LocationLocal(north, east, down)
+
+    def translate_location(self, fromLoc, translation):
+        """
+
+        :param fromLoc:LocationLocal representing the starting position
+        :param toLoc: LocationLocal representing the translation
+        :return: LocationLocal representing the translated location
+        """
+        return LocationLocal(fromLoc.north+translation.north, fromLoc.east+ translation.east, fromLoc.down + translation.down)
