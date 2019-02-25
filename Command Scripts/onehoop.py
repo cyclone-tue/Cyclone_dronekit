@@ -123,9 +123,9 @@ class flight():
             none
         """
         camera = 0 # The camera to use as input
-        calibrationFile = "../Python-C++ interface/marker/drone_calibration.txt" # Use the drone calibration if not in simulation
+        calibrationFile = "../Python-C++ interface/marker/Vision/drone_calibration.txt" # Use the drone calibration if not in simulation
         if(self.simulation):
-            calibrationFile = "../Python-C++ interface/marker/laptop_calibration.txt" # Use laptop calibration if in simulation
+            calibrationFile = "../Python-C++ interface/marker/Vision/laptop_calibration.txt" # Use laptop calibration if in simulation
 
         self.vision = VisionThread(calibrationFile, self.drone, cameraID=camera, logging=self.logger, name="VisionThread") # Initialize the vision thread
         self.vision.start() # Start the vision thread.
