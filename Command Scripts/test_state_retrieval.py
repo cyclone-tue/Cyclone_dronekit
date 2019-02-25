@@ -17,4 +17,3 @@ if __name__ == "__main__":
         myFlight.logger.info("Ending")
     myFlight.end()
     del myFlight
-

@@ -630,7 +630,7 @@ class Cyclone(object):
         # listofWP.append( (matrix_index(path, nrow, (i, index_of_x)), matrix_index(path, nrow, (i, index_of_y)), matrix_index(path, nrow, (i, index_of_z)) )
         for i in range(len(listofWP)):
             # cmd = Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
-                          # 0, 0, 0, 0, 0, 0, listofWP[i][0], listofWP[i][1], -listofWP[i][2])
+            # 0, 0, 0, 0, 0, 0, listofWP[i][0], listofWP[i][1], -listofWP[i][2])
             cmd = Command(0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
                           0, 0, 2, 0, 0, 0, listofWP[i][0], listofWP[i][1], -listofWP[i][2])
             missionlist.append(cmd)

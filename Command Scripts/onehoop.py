@@ -70,7 +70,7 @@ class flight():
             if not self.simulation:
                 self.drone.awake_script() # Wait for the drone to go into guided mode.
 
-        
+
 
     def end(self):
         """
@@ -134,7 +134,7 @@ class flight():
     def goToHoop(self):
 
         self.invalidatePath()
-        
+
         points_to_cover = 10        # First n number of points to cover in the trajectory after every recalculation.
 
         # list_location = []      # Tuples and lists for storing the trajectory information.
@@ -148,14 +148,14 @@ class flight():
                 print("Found path")
                 LocationTuples = []
                 #for i in range(nrow):
-                    # (x, y, z) waypoints w.r.t. the original position of the drone are
-                    # parsed at column 0, 4 and 8 of the computed path.
-                    # North is in the z direction, east is in the x direction and down is in the y direction.
-                    #LocationTuples.append((matrix_index(trajectory, ncol, 0, i), matrix_index(
-                       # trajectory, ncol, 1, i), matrix_index(trajectory, ncol, 2, i)))
-                    # For all the waypoints recoreded, convert them from local NED w.r.t.
-                    # the heading of the drone to global NED (rotating axes w.r.t. yaw angle).
-                    #list_location = LocationTuples
+                # (x, y, z) waypoints w.r.t. the original position of the drone are
+                # parsed at column 0, 4 and 8 of the computed path.
+                # North is in the z direction, east is in the x direction and down is in the y direction.
+                #LocationTuples.append((matrix_index(trajectory, ncol, 0, i), matrix_index(
+                # trajectory, ncol, 1, i), matrix_index(trajectory, ncol, 2, i)))
+                # For all the waypoints recoreded, convert them from local NED w.r.t.
+                # the heading of the drone to global NED (rotating axes w.r.t. yaw angle).
+                #list_location = LocationTuples
 
                 #print(trajectory[0])
                 #print(trajectory[1])
@@ -228,4 +228,3 @@ if __name__ == "__main__":
         myFlight.logger.info("Ending")
     myFlight.end()
     del myFlight
-
