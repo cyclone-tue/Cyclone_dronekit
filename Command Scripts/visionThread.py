@@ -69,18 +69,9 @@ class VisionThread(threading.Thread):
                 self.path = []
                 self.newPath = True
                 for i in range(ncol):
-                    point = LocationLocal(matrix_index(trajectory, ncol, i, 0), matrix_index(trajectory, ncol, i, 1), matrix_index(trajectory, ncol, i, 2))
-                    #self.logging.debug("Point {} of path information: {}, {}, {}".format(i, point.north, point.east, point.down))
-                    rotated = self.drone.rotate_location(point, self.fromAttitude)
-                    translated = self.drone.translate_location(rotated, fromLocation)
-                    self.path.append((translated.north, translated.east, translated.down))
-                    # (x, y, z) waypoints w.r.t. the original position of the drone are
-                    # parsed at column 0, 4 and 8 of the computed path.
-                    # North is in the z direction, east is in the x direction and down is in the y direction.
-                    #self.path.append((matrix_index(trajectory, nrow, i, 8), matrix_index(
-                        #trajectory, nrow, i, 0), matrix_index(trajectory, nrow, i, 4)))
-                # self.logging.debug("Last location is: north: {}, east: {}, down: {}".format(self.path[nrow - 1][0], self.path[nrow - 1][1], self.path[nrow -1][2]))
-                self.pathLock.release()
+                    self.path.append((matrix_index(trajectory, ncol, i, 0), matrix_index(trajectory, ncol, i, 1), matrix_index(trajectory, ncol, i, 2)))    # the translation is removed
+                    
+                    self.pathLock.release()
         self.cleanup()
         self.logging.info("Stopping vision thread")
 
