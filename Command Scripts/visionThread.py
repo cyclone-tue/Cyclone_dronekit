@@ -71,7 +71,7 @@ class VisionThread(threading.Thread):
                 for i in range(ncol):
                     self.path.append((matrix_index(trajectory, ncol, i, 0), matrix_index(trajectory, ncol, i, 1), matrix_index(trajectory, ncol, i, 2)))    # the translation is removed
 
-                    self.pathLock.release()
+                self.pathLock.release()
         self.cleanup()
         self.logging.info("Stopping vision thread")
 

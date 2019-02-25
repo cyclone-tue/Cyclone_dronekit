@@ -210,18 +210,6 @@ class Cyclone(object):
     def get_torques_and_thrust(self):       # unavailable i guess.
         return [20,0,0,0]
 
-
-
-    def get_state(self):                # check this, its still wrong
-        pos = self.vehicle.location.local_frame         # north, east, down
-        vel = self.vehicle.velocity                     # in body frame i guess
-        ang = self.vehicle.attitude                     # yaw is zero at north maybe? what is order of rotations.
-        heading = self.vehicle.heading                  # should be used
-        return [float(pos.north), float(pos.east), float(pos.down), float(vel[0]), float(vel[1]), float(vel[2]), float(ang.roll), float(ang.pitch), float(0), float(0), float(0), float(0)]
-
-    def get_torques_and_thrust(self):       # unavailable i guess.
-        return [0,0,0,0]
-
     # Location/Distance estimations
 
     def global_NED_to_wp(self, original_location, dNorth, dEast, dDown):
@@ -514,24 +502,22 @@ class Cyclone(object):
         Returns:
             nothing
         """
-        if (frame == mavutil.mavlink.MAV_FRAME_LOCAL_NED or mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED):
+
+
+        if (frame == mavutil.mavlink.MAV_FRAME_LOCAL_NED or mavutil.mavlink.MAV_FRAME_LOCAL_OFFSET_NED):    # checking the frame
             localTemp = self.vehicle.location.local_frame
             startLocation = LocationLocal(localTemp.north, localTemp.east, localTemp.down)
             self.logger.info("StartLocation: {}, {}, {}".format(startLocation.north, startLocation.east, startLocation.down))
-            org_yaw = self.vehicle.attitude.yaw
-            global_NED = self.local_NED_to_global_NED(dNorth, dEast, dDown, org_yaw)
-            targetLocation = LocationLocal(dNorth, dEast, dDown)
-            #targetLocation = LocationLocal(startLocation.north + global_NED[0], startLocation.east + global_NED[1], startLocation.down + global_NED[2])
-            #targetLocation = LocationLocal(startLocation.north + targetOffset.north, startLocation.east + targetOffset.east, startLocation.down + targetOffset.down)
+
+            targetLocation = LocationLocal(dNorth, dEast, dDown)        # define target location
             self.logger.info('targetLocation: {}, {}, {}'.format(targetLocation.north, targetLocation.east, targetLocation.down))
-            # targetDistance = self.get_distance_metres_EKF(startLocation, targetLocation)
-            #distanceVector = LocationLocal(targetOffset.north - (startLocation.north - self.local_home.north), targetOffset.east - (startLocation.east - self.local_home.east), targetOffset.down - (startLocation.down - self.local_home.down))
+
             distanceVector = LocationLocal(targetLocation.north - (startLocation.north), targetLocation.east - (startLocation.east ), targetLocation.down - (startLocation.down ))
             self.logger.info('Distance to fly: {}, {}, {}'.format(distanceVector.north, distanceVector.east, distanceVector.down))
-
             targetDistance = math.sqrt(distanceVector.north**2 + distanceVector.east**2 + distanceVector.down**2)
             self.logger.info("Distance to fly: {}".format(targetDistance))
-            self.set_position_target_local_NED(targetLocation.north, targetLocation.east, targetLocation.down, frame)
+
+            self.set_position_target_local_NED(targetLocation.north, targetLocation.east, targetLocation.down, frame)       # set target location in frame
 
         elif (frame == mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT):
             startLocation = self.vehicle.location.global_relative_frame
@@ -544,25 +530,24 @@ class Cyclone(object):
 
 
         while self.vehicle.mode.name == "GUIDED":
-            currentLocation = self.vehicle.location.local_frame
-            # remainingDistance = self.get_distance_metres(self.vehicle.location.global_relative_frame, targetLocation)
-            # remainingDistance is the distance covered along the straight path from the startLocation of this navigation.
+            currentLocation = self.vehicle.location.local_frame     # get current location
+
             travelledDistance = self.get_distance_metres_EKF(startLocation, currentLocation) #* math.cos(abs(self.vehicle.attitude.yaw - org_yaw))
-            self.logger.debug("Travelled distance is {}".format(travelledDistance))
-            #remainingDistance = targetDistance - travelledDistance
-            #remainingDistance = self.get_distance_metres_EKF(currentLocation, targetOffset)
-            #self.logger.debug("Distance to target: {}".format(remainingDistance))
+            #self.logger.debug("Travelled distance is {}".format(travelledDistance))
+
             self.logger.debug("Current location: {}, {}, {}".format(currentLocation.north, currentLocation.east, currentLocation.down))
             if targetDistance == 0:
                 percentage = 1
             else:
                 percentage = travelledDistance/targetDistance
             self.logger.debug("Travelled percentage: {}".format(percentage*100))
-            #self.logger.debug("Travelled percentage: {}".format(travelledDistance/targetDistance*100))
+
             if percentage >= self.distance_percentage_threshold:
                 self.logger.info("Reached target")
                 break
             time.sleep(self.sleep_time)
+            self.set_position_target_local_NED(targetLocation.north, targetLocation.east, targetLocation.down, frame)       # set target location in frame
+
 
 
 

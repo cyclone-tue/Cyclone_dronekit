@@ -169,7 +169,7 @@ class flight():
                     pass
                     # self.logger.info("Following previous path")
                     self.followPath(self.list_location[:points_to_cover], frame) #TODO uncomment this
-                    self.list_location = self.list_location[:points_to_cover] #TODO uncomment this
+                    self.list_location = self.list_location[points_to_cover:] #TODO uncomment this
 
     def getPath(self):
         self.vision.pathLock.acquire(True) # block until lock is aquired
