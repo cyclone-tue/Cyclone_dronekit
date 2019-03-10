@@ -6,7 +6,6 @@ from cyclone import Cyclone
 import ctypes
 import argparse
 import logging
-import time
 from visionThread import VisionThread
 
 class flight():
@@ -45,15 +44,7 @@ class flight():
         handlers = [fileHandler, streamHandler]
         self.drone = self.getDrone(args, handlers) # Initialise the connection to the drone.
         self.initVision() # Initialise the vision thread
-        # self.drone.vehicle.add_attribute_listener("mode", self.mode_observer)
 
-    def mode_observer(self, vehicle, attr_name, mode):
-        print(mode, vehicle, attr_name)
-        if mode == "POSHOLD":
-            #self.drone.vehicle.remove_attribute_listener("mode", self.mode_observer)
-            #self.drone.set_home_location()
-            time.sleep(10)
-            # self.drone.obtain_home_location()
 
     # This function is called after setup is completed and flies through the hoop.
     # It is possible to switch between manual and guided/autonomous mode while in this function.
