@@ -31,6 +31,7 @@ class flight():
         self.simulation = False
         if args.simulate:
             self.simulation = True
+
         # Logging setup methods.
         logging.basicConfig()
         self.logger = logging.Logger("onehoop")
@@ -45,9 +46,9 @@ class flight():
         self.drone = self.getDrone(args, handlers) # Initialise the connection to the drone.
         self.initVision() # Initialise the vision thread
 
-
     # This function is called after setup is completed and flies through the hoop.
     # It is possible to switch between manual and guided/autonomous mode while in this function.
+
     def fly(self):
         """
         Call this function after setup to initialize the flight code and start flying through the hoop.
@@ -69,7 +70,7 @@ class flight():
             if not self.simulation:
                 self.drone.awake_script() # Wait for the drone to go into guided mode.
 
-        
+
 
     def end(self):
         """
@@ -115,15 +116,16 @@ class flight():
 
 
     def initVision(self):
+
         """
         Initialize and start the vision thread
         :return:
             none
         """
         camera = 0 # The camera to use as input
-        calibrationFile = "../Python-C++ interface/marker/drone_calibration.txt" # Use the drone calibration if not in simulation
+        calibrationFile = "../Python-C++ interface/marker/Vision/drone_calibration.txt" # Use the drone calibration if not in simulation
         if(self.simulation):
-            calibrationFile = "../Python-C++ interface/marker/laptop_calibration.txt" # Use laptop calibration if in simulation
+            calibrationFile = "../Python-C++ interface/marker/Vision/laptop_calibration.txt" # Use laptop calibration if in simulation
 
         self.vision = VisionThread(calibrationFile, self.drone, cameraID=camera, logging=self.logger, name="VisionThread") # Initialize the vision thread
         self.vision.start() # Start the vision thread.
@@ -132,7 +134,7 @@ class flight():
     def goToHoop(self):
 
         self.invalidatePath()
-        
+
         points_to_cover = 10        # First n number of points to cover in the trajectory after every recalculation.
 
         # list_location = []      # Tuples and lists for storing the trajectory information.
@@ -146,14 +148,14 @@ class flight():
                 print("Found path")
                 LocationTuples = []
                 #for i in range(nrow):
-                    # (x, y, z) waypoints w.r.t. the original position of the drone are
-                    # parsed at column 0, 4 and 8 of the computed path.
-                    # North is in the z direction, east is in the x direction and down is in the y direction.
-                    #LocationTuples.append((matrix_index(trajectory, ncol, 0, i), matrix_index(
-                       # trajectory, ncol, 1, i), matrix_index(trajectory, ncol, 2, i)))
-                    # For all the waypoints recoreded, convert them from local NED w.r.t.
-                    # the heading of the drone to global NED (rotating axes w.r.t. yaw angle).
-                    #list_location = LocationTuples
+                # (x, y, z) waypoints w.r.t. the original position of the drone are
+                # parsed at column 0, 4 and 8 of the computed path.
+                # North is in the z direction, east is in the x direction and down is in the y direction.
+                #LocationTuples.append((matrix_index(trajectory, ncol, 0, i), matrix_index(
+                # trajectory, ncol, 1, i), matrix_index(trajectory, ncol, 2, i)))
+                # For all the waypoints recoreded, convert them from local NED w.r.t.
+                # the heading of the drone to global NED (rotating axes w.r.t. yaw angle).
+                #list_location = LocationTuples
 
                 #print(trajectory[0])
                 #print(trajectory[1])
@@ -167,7 +169,7 @@ class flight():
                     pass
                     # self.logger.info("Following previous path")
                     self.followPath(self.list_location[:points_to_cover], frame) #TODO uncomment this
-                    self.list_location = self.list_location[:points_to_cover] #TODO uncomment this
+                    self.list_location = self.list_location[points_to_cover:] #TODO uncomment this
 
     def getPath(self):
         self.vision.pathLock.acquire(True) # block until lock is aquired
@@ -226,4 +228,3 @@ if __name__ == "__main__":
         myFlight.logger.info("Ending")
     myFlight.end()
     del myFlight
-
