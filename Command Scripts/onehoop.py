@@ -7,6 +7,7 @@ import ctypes
 import argparse
 import logging
 from visionThread import VisionThread
+from high_level import HighLevelThread
 
 class flight():
     """
@@ -135,6 +136,9 @@ class flight():
 
         self.invalidatePath()
 
+        self.high_level=HighLevelThread(name="HighLevelThread")
+        self.high_level.start()
+
         points_to_cover = 10        # First n number of points to cover in the trajectory after every recalculation.
 
         # list_location = []      # Tuples and lists for storing the trajectory information.
@@ -161,15 +165,17 @@ class flight():
                 #print(trajectory[1])
                 #print(list_location)
 
-                self.followPath(self.list_location[:points_to_cover], frame)
-                self.list_location = self.list_location[points_to_cover:]
+                #self.followPath(self.list_location[:points_to_cover], frame)
+                #self.list_location = self.list_location[points_to_cover:]
+                self.high_level.passPath(self.list_location)
+
             else:
                 # self.logger.debug("Could not find path")
-                if len(self.list_location) > 0:
-                    pass
-                    # self.logger.info("Following previous path")
-                    self.followPath(self.list_location[:points_to_cover], frame) #TODO uncomment this
-                    self.list_location = self.list_location[points_to_cover:] #TODO uncomment this
+                #if len(self.list_location) > 0:
+                #    pass
+                #    # self.logger.info("Following previous path")
+                #    self.followPath(self.list_location[:points_to_cover], frame) #TODO uncomment this
+                #    self.list_location = self.list_location[points_to_cover:] #TODO uncomment this
 
     def getPath(self):
         self.vision.pathLock.acquire(True) # block until lock is aquired

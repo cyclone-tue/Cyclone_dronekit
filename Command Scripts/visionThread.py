@@ -69,7 +69,7 @@ class VisionThread(threading.Thread):
                 self.path = []
                 self.newPath = True
                 for i in range(ncol):
-                    self.path.append((matrix_index(trajectory, ncol, i, 0), matrix_index(trajectory, ncol, i, 1), matrix_index(trajectory, ncol, i, 2)))    # the translation is removed
+                    self.path.append((matrix_index(trajectory, ncol, i, 12), matrix_index(trajectory, ncol, i, 0), matrix_index(trajectory, ncol, i, 1), matrix_index(trajectory, ncol, i, 2), matrix_index(trajectory, ncol, i, 3), matrix_index(trajectory, ncol, i, 4), matrix_index(trajectory, ncol, i, 5), matrix_index(trajectory, ncol, i, 6), matrix_index(trajectory, ncol, i, 7), matrix_index(trajectory, ncol, i, 8)))    # the translation is removed
 
                 self.pathLock.release()
         self.cleanup()
