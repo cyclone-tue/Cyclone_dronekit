@@ -62,16 +62,16 @@ class HighLevelThread(threading.Thread):
 
         return lpath
 
-    def getTarget(self)
+    def getTarget(self):
         hasLow=False
         hasHigh=False
         for i in range(len(self.localPath)):
-            if (time.time()-self.t0) < point[0]:
-                low=point
+            if (time.time()-self.t0) < self.localPath[i][0]:
+                low=self.localPath[i]
                 lowi=i
                 hasLow=True
             else:
-                high=point
+                high=self.localPath[i]
                 highi=i
                 hasHigh=True
                 break
@@ -80,9 +80,9 @@ class HighLevelThread(threading.Thread):
                 del self.localPath[0:lowi]
             #interpolate between low and high
             return [(l+h)/2 for l,h in zip(*[low,high])]
-        else if hasHigh:
+        elif hasHigh:
             return high
-        else if hasLow:
+        elif hasLow:
             if lowi > 0:
                 del self.localPath[0:lowi]
 
@@ -312,7 +312,7 @@ class HighLevelThread(threading.Thread):
 
             if self.newPath:
                 self.pathPlanLock.acquire(True)
-                self.localPath=path[:]
+                self.localPath=self.path[:]
                 self.newPath=False
                 self.pathPlanLock.release()
 

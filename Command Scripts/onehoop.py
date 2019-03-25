@@ -169,7 +169,7 @@ class flight():
                 #self.list_location = self.list_location[points_to_cover:]
                 self.high_level.passPath(self.list_location)
 
-            else:
+            #else:
                 # self.logger.debug("Could not find path")
                 #if len(self.list_location) > 0:
                 #    pass
