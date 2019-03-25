@@ -19,7 +19,7 @@ class HighLevelThread(threading.Thread):
         self.localPath=[]
         self.newPath=True
 
-"""
+    """
     connection_string = '127.0.0.1:14551'
     print("Connecting to vehicle on: %s" % (connection_string,))
     vehicle = connect(connection_string, wait_ready=True)
@@ -41,13 +41,14 @@ class HighLevelThread(threading.Thread):
             totaltime = self.total / 100
             self.total = 0
             print("time: " + str(totaltime))
-"""
+    """
 
     def passPath(self, path):
         self.pathPlanLock.acquire(True)
         self.path=self.dtToT(path)
         self.t0=time.time()
         self.newPath=True
+        print('Path received, lenghth ')
         self.pathPlanLock.release()
 
     def dtToT(self, path):
@@ -67,7 +68,11 @@ class HighLevelThread(threading.Thread):
         hasHigh=False
         for i in range(len(self.localPath)):
             if (time.time()-self.t0) < self.localPath[i][0]:
+<<<<<<< HEAD
                 low=self.localPath[i]
+=======
+                low= self.localPath[i]
+>>>>>>> 4d5703b05589f7bf5df6b4209277605bc1bc71de
                 lowi=i
                 hasLow=True
             else:

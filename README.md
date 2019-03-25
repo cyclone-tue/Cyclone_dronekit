@@ -25,7 +25,9 @@ This step involves running a command script either in local simulation or on the
 
 
 ## Running the script in simulation
-* Install Gazebo and ROS following https://github.com/khancyr/ardupilot_gazebo.
+* Setup
+  * Install Gazebo and ROS and the ardupilot_gazebo plugin following https://github.com/khancyr/ardupilot_gazebo.
+  * Install ardupilot following http://ardupilot.org/dev/docs/building-setup-linux.html#building-setup-linux
 
 * Type `sim_vehicle.py -v ArduCopter -f gazebo-iris --map --console`.
 * In a new terminal, type `gazebo --verbose worlds/iris_arducopter_runway.world` in the terminal.

@@ -56,6 +56,7 @@ class flight():
         :return:
             none
         """
+        print("this")
         if self.simulation:
             # self.drone.set_home_location()
             self.drone.wait_for_user()
@@ -64,8 +65,10 @@ class flight():
             self.drone.awake_script() # Wait for guided mode if this is not a simulation.
         self.drone.obtain_home_location() # Download the home location from the drone.
         self.drone.set_groundspeed(5) # Set the maximum horizontal airspeed to 5 m/s.
+        print("that")
 
         while True:
+            self.logger.debug("in loop")
             self.drone.obtain_home_location()
             self.goToHoop() # Try to go to the hoop. This only exits if we leave guided mode.
             if not self.simulation:
@@ -169,7 +172,13 @@ class flight():
                 #self.list_location = self.list_location[points_to_cover:]
                 self.high_level.passPath(self.list_location)
 
+<<<<<<< HEAD
             #else:
+=======
+            else:
+                print("no path")
+                pass
+>>>>>>> 4d5703b05589f7bf5df6b4209277605bc1bc71de
                 # self.logger.debug("Could not find path")
                 #if len(self.list_location) > 0:
                 #    pass
