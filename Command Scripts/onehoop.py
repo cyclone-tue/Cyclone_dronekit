@@ -152,7 +152,7 @@ class flight():
             if self.getPath():
                 #self.drone.set_home_location()                  # Reset EKF origin for further computations.
                 frame = mavutil.mavlink.MAV_FRAME_LOCAL_NED     # Define the frame to use (local NED w.r.t. EKF origin).
-                print("Found path")
+                print("Found path 2")
                 LocationTuples = []
                 #for i in range(nrow):
                 # (x, y, z) waypoints w.r.t. the original position of the drone are
@@ -172,13 +172,8 @@ class flight():
                 #self.list_location = self.list_location[points_to_cover:]
                 self.high_level.passPath(self.list_location)
 
-<<<<<<< HEAD
-            #else:
-=======
             else:
-                print("no path")
                 pass
->>>>>>> 4d5703b05589f7bf5df6b4209277605bc1bc71de
                 # self.logger.debug("Could not find path")
                 #if len(self.list_location) > 0:
                 #    pass

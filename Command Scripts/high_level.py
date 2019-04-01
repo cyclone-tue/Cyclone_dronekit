@@ -56,6 +56,7 @@ class HighLevelThread(threading.Thread):
         t=0
 
         for i in range(len(path)):
+            print(path[i])
             lpath.append(path[i])
             dt=lpath[i][0]
             lpath[i][0]=t
@@ -68,11 +69,7 @@ class HighLevelThread(threading.Thread):
         hasHigh=False
         for i in range(len(self.localPath)):
             if (time.time()-self.t0) < self.localPath[i][0]:
-<<<<<<< HEAD
-                low=self.localPath[i]
-=======
                 low= self.localPath[i]
->>>>>>> 4d5703b05589f7bf5df6b4209277605bc1bc71de
                 lowi=i
                 hasLow=True
             else:
