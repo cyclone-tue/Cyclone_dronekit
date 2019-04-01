@@ -30,7 +30,8 @@ This step involves running a command script either in local simulation or on the
 * Type `sim_vehicle.py -v ArduCopter -f gazebo-iris --map --console`.
 * In a new terminal, type `gazebo --verbose worlds/iris_arducopter_runway.world` in the terminal.
 
-* In a new terminal, type `python <my_script.py> --connect=<gazebo_ip>`, where <gazebo_ip> is the code indicated by `--out` in the gazebo terminal. For example `python onehoop.py --connect=127.0.0.1:14550 --simulate=True`.
+* In a new terminal, type `python <my_script.py> --connect=<gazebo_ip>`, where <gazebo_ip> is the code indicated by `--out` in the gazebo terminal. For example
+`python onehoop.py --connect=127.0.0.1:14550 --simulate=True`.
 
 * type `mode guided`.
 * type `arm throttle`. It may disarm when you wait for a while.
