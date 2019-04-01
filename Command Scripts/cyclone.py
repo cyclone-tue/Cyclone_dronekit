@@ -204,11 +204,15 @@ class Cyclone(object):
         vel = self.vehicle.velocity                     # in body frame i guess
         ang = self.vehicle.attitude                     # yaw is zero at north maybe? what is order of rotations.
         heading = self.vehicle.heading                  # should be used
-        return [pos.north, pos.east, pos.down, vel[0], vel[1], vel[2], ang.roll, ang.pitch, ang.yaw, 0., 0., 0.]
+        a = float(pos.north)
+        b = float(vel[0])
+        c = float(ang.roll)
+        d = float(0.)
+        return [float(i) for i in [pos.north, pos.east, pos.down, vel[0], vel[1], vel[2], ang.roll, ang.pitch, ang.yaw, 0., 0., 0.]]
 
 
     def get_torques_and_thrust(self):       # unavailable i guess.
-        return [20,0,0,0]
+        return [float(20),float(0),float(0),float(0)]
 
     # Location/Distance estimations
 
