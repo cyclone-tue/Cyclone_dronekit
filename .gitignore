@@ -25,3 +25,5 @@ simulator/
 
 *.log
 Command Scripts/log.txt
+
+Command Scripts/logs/
