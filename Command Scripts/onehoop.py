@@ -84,9 +84,13 @@ class flight():
             none
         """
         self.vision.stop.set() # Tell the vision thread to stop.
+        self.high_level.stop.set()
         self.logger.debug("Joining vision")
         self.vision.join(20.0) # Wait for the vision thread to stop for maximally 20 seconds.
         self.logger.info("Stopped vision")
+        self.logger.debug("Joingin high_level")
+        self.high_level.join(20.0)
+        self.logger.debug("Stopped high_level")
         self.drone.vehicle.close() # Close the connection to the drone.
         # del self.drone.vehicle
         if self.simulation and self.sitl:

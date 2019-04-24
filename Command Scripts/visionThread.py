@@ -71,7 +71,7 @@ class VisionThread(threading.Thread):
                 self.newPath = True
                 for i in range(ncol):
                     point =  [matrix_index(trajectory, ncol, i, 12), matrix_index(trajectory, ncol, i, 0), matrix_index(trajectory, ncol, i, 1), matrix_index(trajectory, ncol, i, 2), matrix_index(trajectory, ncol, i, 3), matrix_index(trajectory, ncol, i, 4), matrix_index(trajectory, ncol, i, 5), matrix_index(trajectory, ncol, i, 6), matrix_index(trajectory, ncol, i, 7), matrix_index(trajectory, ncol, i, 8)];
-                    self.logging.debug(point)
+                    # self.logging.debug(point)
                     self.path.append(point)    # the translation is removed
 
                 self.pathLock.release()
