@@ -9,14 +9,16 @@ import sys, select
 
 class HighLevelThread(threading.Thread):
 
-    def __init__(self, group=None, target=None, name=None, verbose=None, vehicle=None):
+    def __init__(self, group=None, target=None, name=None, verbose=None, drone=None):
         threading.Thread.__init__(self, group=group, target=target, name=name, verbose=verbose)
-        self.vehicle = vehicle
+        self.drone = drone
+        self.vehicle = drone.vehicle
         self.pathPlanLock = threading.Lock()
         self.path=[]
         self.localPath=[]
         self.t0=time.time()
         self.localPath=[]
+        self.stop = threading.Event()
         self.newPath=True
 
     """
@@ -124,7 +126,7 @@ class HighLevelThread(threading.Thread):
         self.vehicle.send_mavlink(msg)
 
 
-    def arm_and_takeoff(self, aTargetAltitude):
+    def arm_and_takeoff(self, aTargetAltitude): #TODO remove
         """
         Arms vehicle and fly to aTargetAltitude.
         """
@@ -158,7 +160,7 @@ class HighLevelThread(threading.Thread):
                 break
             time.sleep(1)
 
-    def set_attitude(self, roll_angle = 0.0, pitch_angle = 0.0, heading = 0.0, thrust = 0.5):
+    def set_attitude(self, roll_angle = 0.0, pitch_angle = 0.0, heading = 0.0, thrust = 0.5): #TODO move to cyclone
         """
         Pitches in to make certain distance manoeuver
         """
@@ -239,7 +241,7 @@ class HighLevelThread(threading.Thread):
         return [w, x, y, z]
 
     def run(self):
-        self.arm_and_takeoff(5)
+        #self.arm_and_takeoff(5)
 
         g=9.81
 
@@ -261,7 +263,7 @@ class HighLevelThread(threading.Thread):
         #endtime=time.time()
         counter=0
 
-        self.set_message_rate()
+        self.set_message_rate() #TODO move to Cyclone object
 
         # while state1 == state2:
         #     break
@@ -310,106 +312,106 @@ class HighLevelThread(threading.Thread):
         #plt.axis([0,100,-2,2])
 
 
-        while not self.stop.isSet() and self.path:
+        while not self.stop.isSet() and self.path: #TODO check path in the loop
 
-            if self.newPath:
+            if self.newPath: #TODO make function
                 self.pathPlanLock.acquire(True)
                 self.localPath=self.path[:]
                 self.newPath=False
                 self.pathPlanLock.release()
 
+            if len(self.localPath) > 0:
+                psi=self.vehicle.attitude.yaw
 
-            psi=self.vehicle.attitude.yaw
+                x=self.vehicle.location.local_frame.north
+                y=self.vehicle.location.local_frame.east
+                z=self.vehicle.location.local_frame.down
+                vx=self.vehicle.velocity[0]
+                vy=self.vehicle.velocity[1]
+                vz=self.vehicle.velocity[2]
 
-            x=self.vehicle.location.local_frame.north
-            y=self.vehicle.location.local_frame.east
-            z=self.vehicle.location.local_frame.down
-            vx=self.vehicle.velocity[0]
-            vy=self.vehicle.velocity[1]
-            vz=self.vehicle.velocity[2]
+                t=self.getTarget()
+                tx=t[1]
+                ty=t[2]
+                tz=t[3]
+                tvx=t[4]
+                tvy=t[5]
+                tvz=t[6]
+                tax=t[7]
+                tay=t[8]
+                #taz=t[9]-g
+                #NOTE: z control not implemented yet, because of weird thrust 0.5 setting
 
-            t=self.getTarget()
-            tx=t[1]
-            ty=t[2]
-            tz=t[3]
-            tvx=t[4]
-            tvy=t[5]
-            tvz=t[6]
-            tax=t[7]
-            tay=t[8]
-            #taz=t[9]-g
-            #NOTE: z control not implemented yet, because of weird thrust 0.5 setting
+                #R=2.5
+                #T=15
+                #omega=2*math.pi/T
 
-            #R=2.5
-            #T=15
-            #omega=2*math.pi/T
-
-            #tx=R*math.sin(omega*(time.time()-starttime))+1
-            #ty=R*math.cos(omega*(time.time()-starttime))-R+1
-            #tvx=R*omega*math.cos(omega*(time.time()-starttime))
-            #tvy=-R*omega*math.sin(omega*(time.time()-starttime))
-            #tax=-R*omega*omega*math.sin(omega*(time.time()-starttime))
-            #tay=-R*omega*omega*math.cos(omega*(time.time()-starttime))
-
-
-            ex=tx-x
-            ey=ty-y
-            ez=tz-z
-            evx=tvx-vx
-            evy=tvy-vy
-            evz=tvz-vz
-
-            xfb=p*ex+d*evx
-            yfb=p*ey+d*evy
-            zfb=p*ez+d*evz
-
-            xa=tax+xfb
-            ya=tay+yfb
-            za=taz+zfb
-
-            #clipping
-            maxgsxy=2
-            maxgsz=1
-            xa = min(maxgsxy*g, xa)
-            xa = max(xa, -maxgsxy*g)
-            ya = min(maxgsxy*g, ya)
-            ya = max(ya, -maxgsxy*g)
-            za = min(g+maxgsz*g, za)
-            za = max(za, -g-maxgsz*g)
-
-            #NOTE: z control not implemented yet, because of weird thrust 0.5 setting
-            za=-g
-
-            #TODO een keer proberen phi0 uit te reken a.d.h.v. theta i.p.v. thetha0; ook taz of za?
-            theta0=math.atan2(-(math.cos(psi)*xa+math.sin(psi)*ya),-za)
-            phi0=math.atan2(math.cos(theta0)*(math.cos(psi)*ya-math.sin(psi)*xa),-za)
-            psi0=math.atan2(vy,vx)
-
-            self.set_attitude(roll_angle=phi0, pitch_angle=theta0, heading=0, thrust=0.5)
-            time.sleep(0.025)
-
-            counter=counter+1
-            if counter>=10:
-                counter=0
-                self.set_message_rate()
-
-            if(abs(xa)==maxgsxy*g or abs(ya)==maxgsxy*g):
-                print("Clipping x/y")
-
-            if(za==g+maxgsz*g or za==-g-maxgsz*g):
-                print("Clipping z")
-
-            #print("x:",x," y:",y)
-            #print("theta:",math.degrees(theta0)," phi:",math.degrees(phi0)," psi:",math.degrees(psi))
-
-            #print ex
-
-            #plt.scatter(time.time()-starttime,ex,time.time()-starttime,x)
-            #plt.pause(0.01)
+                #tx=R*math.sin(omega*(time.time()-starttime))+1
+                #ty=R*math.cos(omega*(time.time()-starttime))-R+1
+                #tvx=R*omega*math.cos(omega*(time.time()-starttime))
+                #tvy=-R*omega*math.sin(omega*(time.time()-starttime))
+                #tax=-R*omega*omega*math.sin(omega*(time.time()-starttime))
+                #tay=-R*omega*omega*math.cos(omega*(time.time()-starttime))
 
 
-            #i, o, e = select.select([sys.stdin], [], [], 0.0001)
-            #if i == [sys.stdin]: break
+                ex=tx-x
+                ey=ty-y
+                ez=tz-z
+                evx=tvx-vx
+                evy=tvy-vy
+                evz=tvz-vz
+
+                xfb=p*ex+d*evx
+                yfb=p*ey+d*evy
+                zfb=p*ez+d*evz
+
+                xa=tax+xfb
+                ya=tay+yfb
+                za=taz+zfb
+
+                #clipping
+                maxgsxy=2
+                maxgsz=1
+                xa = min(maxgsxy*g, xa)
+                xa = max(xa, -maxgsxy*g)
+                ya = min(maxgsxy*g, ya)
+                ya = max(ya, -maxgsxy*g)
+                za = min(g+maxgsz*g, za)
+                za = max(za, -g-maxgsz*g)
+
+                #NOTE: z control not implemented yet, because of weird thrust 0.5 setting
+                za=-g
+
+                #TODO een keer proberen phi0 uit te reken a.d.h.v. theta i.p.v. thetha0; ook taz of za?
+                theta0=math.atan2(-(math.cos(psi)*xa+math.sin(psi)*ya),-za)
+                phi0=math.atan2(math.cos(theta0)*(math.cos(psi)*ya-math.sin(psi)*xa),-za)
+                psi0=math.atan2(vy,vx)
+
+                self.set_attitude(roll_angle=phi0, pitch_angle=theta0, heading=0, thrust=0.5)
+                time.sleep(0.025)
+
+                counter=counter+1
+                if counter>=10:
+                    counter=0
+                    self.set_message_rate()
+
+                if(abs(xa)==maxgsxy*g or abs(ya)==maxgsxy*g):
+                    print("Clipping x/y")
+
+                if(za==g+maxgsz*g or za==-g-maxgsz*g):
+                    print("Clipping z")
+
+                #print("x:",x," y:",y)
+                #print("theta:",math.degrees(theta0)," phi:",math.degrees(phi0)," psi:",math.degrees(psi))
+
+                #print ex
+
+                #plt.scatter(time.time()-starttime,ex,time.time()-starttime,x)
+                #plt.pause(0.01)
+
+
+                #i, o, e = select.select([sys.stdin], [], [], 0.0001)
+                #if i == [sys.stdin]: break
 
 
         #STOPPING

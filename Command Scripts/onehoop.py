@@ -139,7 +139,7 @@ class flight():
 
         self.invalidatePath()
 
-        self.high_level=HighLevelThread(name="HighLevelThread")
+        self.high_level=HighLevelThread(name="HighLevelThread",drone=self.drone) #TODO move to initHighlevel
         self.high_level.start()
 
         points_to_cover = 10        # First n number of points to cover in the trajectory after every recalculation.
