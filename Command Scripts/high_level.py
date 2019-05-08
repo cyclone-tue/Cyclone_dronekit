@@ -106,8 +106,8 @@ class HighLevelThread(threading.Thread):
         d=1.6
 
         #NOTE: z control not implemented yet, because of weird thrust 0.5 setting
-        pz=1
-        dz=1
+        pz=p*5
+        dz=d*5
 
         #NOTE: z control not implemented yet, because of weird thrust 0.5 setting, so remove this:
         #az=0
@@ -193,7 +193,7 @@ class HighLevelThread(threading.Thread):
                 psi0=math.atan2(vy,vx)
                 #psi control not used, will be in path planner
 
-                thrust=-(za+g)/g*0.3+0.5;
+                thrust=-(za+g)/g*0.5+0.5;
                 self.logging.debug('thrust={}'.format(thrust))
 
                 self.drone.set_attitude(roll_angle=phi0, pitch_angle=theta0, heading=psiFixed, thrust=thrust)
