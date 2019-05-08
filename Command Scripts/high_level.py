@@ -94,9 +94,6 @@ class HighLevelThread(threading.Thread):
 
         fracHigh=dtlow/dt
 
-        self.logging.debug("fracHigh = ")
-        self.logging.debug(fracHigh)
-
         return [(l+(h-l)*fracHigh) for l,h in zip(*[low,high])]
 
     def run(self):
@@ -158,6 +155,10 @@ class HighLevelThread(threading.Thread):
                 evx=tvx-vx
                 evy=tvy-vy
                 evz=tvz-vz
+
+                self.logging.debug('Vergelijk onderstaande twee')
+                self.logging.debug('target x,y,z: {}, {}, {}'.format(tx,ty,tz))
+                self.logging.debug('x,y,z: {}, {}, {}'.format(x,y,z))
 
                 xfb=p*ex+d*evx
                 yfb=p*ey+d*evy
