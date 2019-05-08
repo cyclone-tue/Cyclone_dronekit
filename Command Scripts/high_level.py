@@ -119,8 +119,8 @@ class HighLevelThread(threading.Thread):
 
 
         while not self.stop.isSet():
-
-            if self.newPath:
+            #update local path max once every second
+            if self.newPath and (time.time()-self.t0)>1:
                 self.pathPlanLock.acquire(True)
                 self.localPath=self.path[:]
                 self.newPath=False
@@ -138,7 +138,6 @@ class HighLevelThread(threading.Thread):
                 vz=self.vehicle.velocity[2]
 
                 t=self.getTarget()
-                self.logging.debug(t)
                 tx=t[1]
                 ty=t[2]
                 tz=t[3]
