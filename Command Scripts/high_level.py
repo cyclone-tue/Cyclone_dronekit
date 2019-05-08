@@ -20,7 +20,7 @@ class HighLevelThread(threading.Thread):
         self.localPath=[]
         self.stop = threading.Event()
         self.newPath=True
-        self.logging=logging
+        self.logging = logging
 
     def passPath(self, path):
         self.pathPlanLock.acquire(True)
@@ -88,7 +88,7 @@ class HighLevelThread(threading.Thread):
             self.logging.error("No target!")
             return 0
 
-    def interpolate(low, high, t):
+    def interpolate(self, low, high, t):
         dt=high[0]-low[0]
         dtlow=t-low[0]
 
@@ -183,7 +183,7 @@ class HighLevelThread(threading.Thread):
                 phi0=math.atan2(math.cos(theta0)*(math.cos(psi)*ya-math.sin(psi)*xa),-za)
                 psi0=math.atan2(vy,vx)
 
-                self.set_attitude(roll_angle=phi0, pitch_angle=theta0, heading=0, thrust=0.5)
+                self.drone.set_attitude(roll_angle=phi0, pitch_angle=theta0, heading=0, thrust=0.5)
 
                 #TODO check this rate
                 time.sleep(0.025)
@@ -201,7 +201,9 @@ class HighLevelThread(threading.Thread):
         #end of while loop
               
         #STOPPING
-        self.set_attitude(roll_angle=0, pitch_angle=0, heading=0, thrust=0.5)
+        #self.drone.set_attitude(roll_angle=0, pitch_angle=0, heading=0, thrust=0.5)
+        local_position = self.drone.vehicle.location.local_frame
+        self.drone.goto_local_NED(local_position.north, local_position.east, local_position.down, mavutil.mavlink.MAV_FRAME_LOCAL_NED) # Stay where you are.
 
         self.logging.debug("Highlevel controller: I'm out, chillazz")
         

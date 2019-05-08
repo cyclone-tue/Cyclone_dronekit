@@ -46,6 +46,7 @@ class flight():
         handlers = [fileHandler, streamHandler]
         self.drone = self.getDrone(args, handlers) # Initialise the connection to the drone.
         self.initVision() # Initialise the vision thread
+        self.initControl() # Initialise the high level control thread
 
     # This function is called after setup is completed and flies through the hoop.
     # It is possible to switch between manual and guided/autonomous mode while in this function.
@@ -138,13 +139,14 @@ class flight():
         self.vision = VisionThread(calibrationFile, self.drone, cameraID=camera, logging=self.logger, name="VisionThread") # Initialize the vision thread
         self.vision.start() # Start the vision thread.
 
+    def initControl(self):
+        self.high_level=HighLevelThread(name="HighLevelThread",drone=self.drone, logging=self.logger) #TODO move to initHighlevel
+        self.high_level.start()
+
 
     def goToHoop(self):
 
         self.invalidatePath()
-
-        self.high_level=HighLevelThread(name="HighLevelThread",drone=self.drone) #TODO move to initHighlevel
-        self.high_level.start()
 
         points_to_cover = 10        # First n number of points to cover in the trajectory after every recalculation.
 
