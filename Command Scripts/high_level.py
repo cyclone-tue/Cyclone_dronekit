@@ -110,8 +110,8 @@ class HighLevelThread(threading.Thread):
         dz=1
 
         #NOTE: z control not implemented yet, because of weird thrust 0.5 setting, so remove this:
-        az=0
-        taz=az-g
+        #az=0
+        #taz=az-g
 
         counter=0 #counter for message rate setter
         self.drone.set_message_rate() #TODO move to Cyclone object
@@ -150,7 +150,7 @@ class HighLevelThread(threading.Thread):
                 tvz=t[6]
                 tax=t[7]
                 tay=t[8]
-                #taz=t[9]-g
+                taz=t[9]-g
                 #NOTE: z control not implemented yet, because of weird thrust 0.5 setting, so uncomment that
 
                 ex=tx-x
@@ -183,14 +183,19 @@ class HighLevelThread(threading.Thread):
                 za = max(za, -g-maxgsz*g)
 
                 #NOTE: z control not implemented yet, because of weird thrust 0.5 setting, so remove this:
-                za=-g
+                #za=-g
+                self.logging.debug('za={}'.format(za))
 
                 #TODO een keer proberen phi0 uit te reken a.d.h.v. theta i.p.v. thetha0; ook taz of za?
                 theta0=math.atan2(-(math.cos(psi)*xa+math.sin(psi)*ya),-za)
                 phi0=math.atan2(math.cos(theta0)*(math.cos(psi)*ya-math.sin(psi)*xa),-za)
                 psi0=math.atan2(vy,vx)
+                #psi control not used, will be in path planner
 
-                self.drone.set_attitude(roll_angle=phi0, pitch_angle=theta0, heading=psiFixed, thrust=0.5)
+                thrust=-(za+g)/g*0.3+0.5;
+                self.logging.debug('thrust={}'.format(thrust))
+
+                self.drone.set_attitude(roll_angle=phi0, pitch_angle=theta0, heading=psiFixed, thrust=thrust)
 
                 counter=counter+1
                 if counter>=10:
