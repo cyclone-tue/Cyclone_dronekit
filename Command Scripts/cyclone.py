@@ -800,5 +800,5 @@ class Cyclone(object):
         self.vehicle.send_mavlink(msg)
 
         frequency=1.0/float(period)*1000000.0
-        # print("Setting message " + str(message_id) + " to rate " + str(frequency) + " Hz")
+        # self.logger.debug("Setting message " + str(message_id) + " to rate " + str(frequency) + " Hz")
 

@@ -185,9 +185,10 @@ class HighLevelThread(threading.Thread):
                 #NOTE: z control not implemented yet, because of weird thrust 0.5 setting, so remove this:
                 za=-g
 
+                theta = self.vehicle.attitude.pitch
                 #TODO een keer proberen phi0 uit te reken a.d.h.v. theta i.p.v. thetha0; ook taz of za?
                 theta0=math.atan2(-(math.cos(psi)*xa+math.sin(psi)*ya),-za)
-                phi0=math.atan2(math.cos(theta0)*(math.cos(psi)*ya-math.sin(psi)*xa),-za)
+                phi0=math.atan2(math.cos(theta)*(math.cos(psi)*ya-math.sin(psi)*xa),-za)
                 psi0=math.atan2(vy,vx)
 
                 self.drone.set_attitude(roll_angle=phi0, pitch_angle=theta0, heading=psiFixed, thrust=0.5)
