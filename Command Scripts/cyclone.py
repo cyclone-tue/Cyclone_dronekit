@@ -697,3 +697,77 @@ class Cyclone(object):
         :return: LocationLocal representing the translated location
         """
         return LocationLocal(fromLoc.north+translation.north, fromLoc.east+ translation.east, fromLoc.down + translation.down)
+
+    def to_quaternion_deg(self, roll = 0.0, pitch = 0.0, yaw = 0.0):
+        """
+        Convert degrees to quaternions
+        """
+        t0 = math.cos(math.radians(yaw * 0.5))
+        t1 = math.sin(math.radians(yaw * 0.5))
+        t2 = math.cos(math.radians(roll * 0.5))
+        t3 = math.sin(math.radians(roll * 0.5))
+        t4 = math.cos(math.radians(pitch * 0.5))
+        t5 = math.sin(math.radians(pitch * 0.5))
+
+        w = t0 * t2 * t4 + t1 * t3 * t5
+        x = t0 * t3 * t4 - t1 * t2 * t5
+        y = t0 * t2 * t5 + t1 * t3 * t4
+        z = t1 * t2 * t4 - t0 * t3 * t5
+
+        return [w, x, y, z]
+
+    def to_quaternion_rad(self, roll = 0.0, pitch = 0.0, yaw = 0.0):
+        """
+        Convert degrees to quaternions
+        """
+        t0 = math.cos((yaw * 0.5))
+        t1 = math.sin((yaw * 0.5))
+        t2 = math.cos((roll * 0.5))
+        t3 = math.sin((roll * 0.5))
+        t4 = math.cos((pitch * 0.5))
+        t5 = math.sin((pitch * 0.5))
+
+        w = t0 * t2 * t4 + t1 * t3 * t5
+        x = t0 * t3 * t4 - t1 * t2 * t5
+        y = t0 * t2 * t5 + t1 * t3 * t4
+        z = t1 * t2 * t4 - t0 * t3 * t5
+
+        return [w, x, y, z]
+
+    def set_attitude(self, roll_angle = 0.0, pitch_angle = 0.0, heading = 0.0, thrust = 0.5): #TODO move to cyclone
+        msg = self.vehicle.message_factory.set_attitude_target_encode(
+        0, #milliseconds since boot
+        0, 0, #System and component ID
+        0b00000111, #Mappings: If any of these bits are set, the corresponding input should be ignored: (LSB is bit 1) bit 1: body roll rate, bit 2: body pitch rate, bit 3: body yaw rate. bit 4-bit 6: reserved, bit 7: throttle bit 8: attitude. Currently, throttle and attitude must be set to 0, i.e. not ignored
+        self.to_quaternion_rad(roll_angle, pitch_angle, heading), #Attitude quaternion
+        0, #Body roll rate in rad/s
+        0, #Body pitch rate in rad/s
+        0, #Body yaw rate in rad/s
+        thrust #Normalized thrust
+        )
+
+        self.vehicle.send_mavlink(msg)
+
+
+    def set_message_rate(self, period=20000 , message_id=32):
+        """
+        Try to set the message rate for a particular mavlink message.
+        ATTENTION: Period INTERVAL IS IN MICROSECONDS
+        """
+
+        msg = self.vehicle.message_factory.command_long_encode(
+            0, 0,  # target system, target component
+            mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,  # command
+            0,  # confirmation
+            message_id,  # param 1, yaw in degrees
+            period,  # param 2, yaw speed deg/s
+            1,  # param 3, direction -1 ccw, 1 cw
+            0,  # param 4, relative offset 1, absolute angle 0
+            0, 0, 0)  # param 5 ~ 7 not used
+
+        # send command to vehicle
+        self.vehicle.send_mavlink(msg)
+
+        frequency=1.0/float(period)*1000000.0
+        # print("Setting message " + str(message_id) + " to rate " + str(frequency) + " Hz")
+
