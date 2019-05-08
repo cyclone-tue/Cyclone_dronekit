@@ -61,6 +61,7 @@ class HighLevelThread(threading.Thread):
 
         if hasHigh and hasLow:
             if lowi > 0:
+                #delete the past
                 del self.localPath[0:lowi]
             #interpolate between low and high
 
@@ -71,6 +72,17 @@ class HighLevelThread(threading.Thread):
             if lowi > 0:
                 #delete the past
                 del self.localPath[0:lowi]
+
+            #hover still in the last point
+            #zero velocity
+            low[4]=0
+            low[5]=0
+            low[6]=0
+            #zero acceleration
+            low[7]=0
+            low[8]=0
+            low[9]=0
+
             return low
         else:
             self.logging.error("No target!")
