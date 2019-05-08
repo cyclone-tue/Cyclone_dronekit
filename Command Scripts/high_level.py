@@ -98,6 +98,8 @@ class HighLevelThread(threading.Thread):
 
     def run(self):
 
+
+
         g=9.81
 
         p=3
@@ -121,6 +123,8 @@ class HighLevelThread(threading.Thread):
 
             #update local path max once every second
             if self.newPath and (time.time()-self.t0)>1:
+                psiFixed=self.vehicle.attitude.yaw
+
                 self.pathPlanLock.acquire(True)
                 self.localPath=self.path[:]
                 self.newPath=False
@@ -186,7 +190,7 @@ class HighLevelThread(threading.Thread):
                 phi0=math.atan2(math.cos(theta0)*(math.cos(psi)*ya-math.sin(psi)*xa),-za)
                 psi0=math.atan2(vy,vx)
 
-                self.drone.set_attitude(roll_angle=phi0, pitch_angle=theta0, heading=0, thrust=0.5)
+                self.drone.set_attitude(roll_angle=phi0, pitch_angle=theta0, heading=psiFixed, thrust=0.5)
 
                 counter=counter+1
                 if counter>=10:
