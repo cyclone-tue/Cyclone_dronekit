@@ -119,6 +119,9 @@ class HighLevelThread(threading.Thread):
 
 
         while not self.stop.isSet():
+            #TODO check this rate
+            time.sleep(0.01)
+
             #update local path max once every second
             if self.newPath and (time.time()-self.t0)>1:
                 self.pathPlanLock.acquire(True)
@@ -183,9 +186,6 @@ class HighLevelThread(threading.Thread):
                 psi0=math.atan2(vy,vx)
 
                 self.drone.set_attitude(roll_angle=phi0, pitch_angle=theta0, heading=0, thrust=0.5)
-
-                #TODO check this rate
-                time.sleep(0.025)
 
                 counter=counter+1
                 if counter>=10:
