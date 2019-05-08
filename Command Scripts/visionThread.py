@@ -46,12 +46,13 @@ class VisionThread(threading.Thread):
         while not self.stop.isSet():
             currentState = self.drone.get_state()
 
+            trajectory = (ctypes.c_double * (100*17))()
             currentTorque = self.drone.get_torques_and_thrust()
             currentStateC = (ctypes.c_double * len(currentState))(*currentState)
             currentTorqueC = (ctypes.c_double * len(currentTorque))(*currentTorque)
             pathLength = ctypes.c_int()                     # is set to true if a path is found, false otherwise
             visualize = ctypes.c_bool(True)      # True if the pathplanning should be visualized using opencv. This can be used for debug purposes.
-            trajectory = self.path_planner(ctypes.pointer(currentStateC), ctypes.pointer(currentTorqueC), ctypes.pointer(pathLength), visualize)
+            success = self.path_planner(ctypes.pointer(trajectory), ctypes.pointer(currentStateC), ctypes.pointer(currentTorqueC), ctypes.pointer(pathLength), visualize)
             #foundPath = ctypes.c_bool()  # is set to true if a path is found, false otherwise
             #visualize = ctypes.c_bool(True)  # True if the pathplanning should be visualized using opencv. This can be used for debug purposes.
 
