@@ -186,9 +186,10 @@ class HighLevelThread(threading.Thread):
                 #za=-g
                 self.logging.debug('za={}'.format(za))
 
+                theta = self.vehicle.attitude.pitch
                 #TODO een keer proberen phi0 uit te reken a.d.h.v. theta i.p.v. thetha0; ook taz of za?
                 theta0=math.atan2(-(math.cos(psi)*xa+math.sin(psi)*ya),-za)
-                phi0=math.atan2(math.cos(theta0)*(math.cos(psi)*ya-math.sin(psi)*xa),-za)
+                phi0=math.atan2(math.cos(theta)*(math.cos(psi)*ya-math.sin(psi)*xa),-za)
                 psi0=math.atan2(vy,vx)
                 #psi control not used, will be in path planner
 
