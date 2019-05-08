@@ -7,6 +7,8 @@ import threading
 
 import sys, select
 
+#TODO logging
+
 class HighLevelThread(threading.Thread):
 
     def __init__(self, group=None, target=None, name=None, verbose=None, drone=None):
@@ -312,7 +314,7 @@ class HighLevelThread(threading.Thread):
         #plt.axis([0,100,-2,2])
 
 
-        while not self.stop.isSet() and self.path: #TODO check path in the loop
+        while not self.stop.isSet():
 
             if self.newPath: #TODO make function
                 self.pathPlanLock.acquire(True)
