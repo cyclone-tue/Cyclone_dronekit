@@ -50,7 +50,7 @@ class HighLevelThread(threading.Thread):
     def passPath(self, path):
         self.pathPlanLock.acquire(True)
         self.path=self.dtToT(path)
-        self.t0=time.time()
+
         self.newPath=True
         print('Path received, lenghth ')
         self.pathPlanLock.release()
@@ -69,10 +69,12 @@ class HighLevelThread(threading.Thread):
         return lpath
 
     def getTarget(self):
+        print("Time: ")
+        print(time.time() - self.t0)
         hasLow=False
         hasHigh=False
         for i in range(len(self.localPath)):
-            if (time.time()-self.t0) < self.localPath[i][0]:
+            if (time.time()-self.t0) > self.localPath[i][0]:
                 low= self.localPath[i]
                 lowi=i
                 hasLow=True
@@ -81,6 +83,13 @@ class HighLevelThread(threading.Thread):
                 highi=i
                 hasHigh=True
                 break
+        if hasLow:
+            print("Low: ")
+            print(low)
+        if hasHigh:
+            print("High: ")
+            print(high)
+        # print("Low: " + low + " high: " + high)
         if hasHigh and hasLow:
             if lowi > 0:
                 del self.localPath[0:lowi]
@@ -204,7 +213,7 @@ class HighLevelThread(threading.Thread):
         self.vehicle.send_mavlink(msg)
 
         frequency=1.0/float(period)*1000000.0
-        print("Setting message " + str(message_id) + " to rate " + str(frequency) + " Hz")
+        # print("Setting message " + str(message_id) + " to rate " + str(frequency) + " Hz")
 
     def to_quaternion_deg(self, roll = 0.0, pitch = 0.0, yaw = 0.0):
         """
@@ -320,6 +329,7 @@ class HighLevelThread(threading.Thread):
                 self.pathPlanLock.acquire(True)
                 self.localPath=self.path[:]
                 self.newPath=False
+                self.t0=time.time()
                 self.pathPlanLock.release()
 
             if len(self.localPath) > 0:
@@ -333,6 +343,7 @@ class HighLevelThread(threading.Thread):
                 vz=self.vehicle.velocity[2]
 
                 t=self.getTarget()
+                print(t)
                 tx=t[1]
                 ty=t[2]
                 tz=t[3]
@@ -415,7 +426,7 @@ class HighLevelThread(threading.Thread):
                 #i, o, e = select.select([sys.stdin], [], [], 0.0001)
                 #if i == [sys.stdin]: break
 
-
+        self.set_attitude(roll_angle=0, pitch_angle=0, heading=0, thrust=0.5)
         #STOPPING
 
         #arm_and_takeoff(5)
