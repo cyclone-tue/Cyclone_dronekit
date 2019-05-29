@@ -2,8 +2,6 @@ from dronekit import connect, VehicleMode,Vehicle
 import time
 import math
 from pymavlink import mavutil
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import threading
 
 import sys, select
@@ -22,6 +20,8 @@ class HighLevelThread(threading.Thread):
         self.stop = threading.Event()
         self.newPath=True
         self.logging = logging
+        self.plotTarget=[[],[],[]]
+        self.plotFlown=[[],[],[]]
 
     def passPath(self, path):
         self.pathPlanLock.acquire(True)
@@ -118,10 +118,6 @@ class HighLevelThread(threading.Thread):
         counter=0 #counter for message rate setter
         self.drone.set_message_rate() #TODO move to Cyclone object
 
-        #start plot
-        fig = pyplot.figure()
-        ax = Axes3D(fig)
-
         while not self.stop.isSet():
             #TODO check this rate
             time.sleep(sleeptime)
@@ -216,14 +212,15 @@ class HighLevelThread(threading.Thread):
                 if(za==g+maxgsz*g or za==-g-maxgsz*g):
                     self.logging.warning("Clipping z")
 
-                #plotting
-                ax.scatter(x,y,z,c='red')
-                ax.scatter(tx,ty,tz,c='blue')
-                plt.pause(sleeptime)
-        #end of while loop
+                #save target and current point for plotting
+                self.plotTarget[0].append(tx)
+                self.plotTarget[1].append(ty)
+                self.plotTarget[2].append(tz)
+                self.plotFLown[0].append(x)
+                self.plotFlown[1].append(y)
+                self.plotFlown[2].append(z)
 
-        #TODO check this
-        plt.show()
+        #end of while loop
 
         #STOPPING
         #self.drone.set_attitude(roll_angle=0, pitch_angle=0, heading=0, thrust=0.5)

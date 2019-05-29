@@ -8,6 +8,8 @@ import argparse
 import logging
 from visionThread import VisionThread
 from high_level import HighLevelThread
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 class flight():
     """
@@ -99,6 +101,13 @@ class flight():
             del self.sitl
         del self.drone
 
+    def plotHighlevelResults(self):
+        fig = pyplot.figure()
+        ax = Axes3D(fig)
+        ax.scatter(self.high_level.plotTarget[0],self.high_level.plotTarget[1],self.high_level.plotTarget[2],c='blue')
+        ax.scatter(self.high_level.plotFlown[0],self.high_level.plotFlown[1],self.high_level.plotFLown[2],c='red')
+        plt.show()
+        self.drone.wait_for_user()
 
     def getDrone(self, args, handlers):
         """
@@ -243,4 +252,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         myFlight.logger.info("Ending")
     myFlight.end()
+    myFlight.plotHighlevelResults() #Also waits for user
     del myFlight
