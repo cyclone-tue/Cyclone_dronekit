@@ -3,6 +3,7 @@ import time
 import math
 from pymavlink import mavutil
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import threading
 
 import sys, select
