@@ -219,7 +219,7 @@ class HighLevelThread(threading.Thread):
                 self.plotTarget[0].append(tx)
                 self.plotTarget[1].append(ty)
                 self.plotTarget[2].append(tz)
-                self.plotFLown[0].append(x)
+                self.plotFlown[0].append(x)
                 self.plotFlown[1].append(y)
                 self.plotFlown[2].append(z)
 

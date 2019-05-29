@@ -105,10 +105,10 @@ class flight():
         del self.drone
 
     def plotHighlevelResults(self):
-        fig = pyplot.figure()
+        fig = plt.figure()
         ax = Axes3D(fig)
         ax.scatter(self.high_level.plotTarget[0],self.high_level.plotTarget[1],self.high_level.plotTarget[2],c='blue')
-        ax.scatter(self.high_level.plotFlown[0],self.high_level.plotFlown[1],self.high_level.plotFLown[2],c='red')
+        ax.scatter(self.high_level.plotFlown[0],self.high_level.plotFlown[1],self.high_level.plotFlown[2],c='red')
         plt.show()
         self.drone.wait_for_user()
 
