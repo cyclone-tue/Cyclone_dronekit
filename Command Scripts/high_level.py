@@ -98,8 +98,6 @@ class HighLevelThread(threading.Thread):
 
     def run(self):
 
-
-
         g=9.81
 
         p=3
@@ -113,13 +111,19 @@ class HighLevelThread(threading.Thread):
         #az=0
         #taz=az-g
 
+        #TODO check this rate
+        sleeptime=0.01/2; #NOTE: also used in plt.pauze()
+
         counter=0 #counter for message rate setter
         self.drone.set_message_rate() #TODO move to Cyclone object
 
+        #start plot
+        fig = pyplot.figure()
+        ax = Axes3D(fig)
 
         while not self.stop.isSet():
             #TODO check this rate
-            time.sleep(0.01)
+            time.sleep(sleeptime)
 
             #update local path max once every second
             if self.newPath and (time.time()-self.t0)>1:
@@ -186,6 +190,8 @@ class HighLevelThread(threading.Thread):
                 #za=-g
                 self.logging.debug('za={}'.format(za))
 
+                #TODO ff die ZA debuggen (wel of niet inclusief g?)
+
                 theta = self.vehicle.attitude.pitch
                 #TODO een keer proberen phi0 uit te reken a.d.h.v. theta i.p.v. thetha0; ook taz of za?
                 theta0=math.atan2(-(math.cos(psi)*xa+math.sin(psi)*ya),-za)
@@ -208,8 +214,16 @@ class HighLevelThread(threading.Thread):
 
                 if(za==g+maxgsz*g or za==-g-maxgsz*g):
                     self.logging.warning("Clipping z")
+
+                #plotting
+                ax.scatter(x,y,z,c='red')
+                ax.scatter(tx,ty,tz,c='blue')
+                plt.pause(sleeptime)
         #end of while loop
-              
+
+        #TODO check this
+        plt.show()
+
         #STOPPING
         #self.drone.set_attitude(roll_angle=0, pitch_angle=0, heading=0, thrust=0.5)
         local_position = self.drone.vehicle.location.local_frame
