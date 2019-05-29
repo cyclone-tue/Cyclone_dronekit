@@ -94,7 +94,7 @@ class flight():
         self.logger.debug("Stopped high_level")
         self.drone.vehicle.close() # Close the connection to the drone.
         # del self.drone.vehicle
-        if self.simulation and self.sitl:
+        if self.simulation and self.sitl != None:
             self.sitl.stop() # Stop the sitl
             del self.sitl
         del self.drone

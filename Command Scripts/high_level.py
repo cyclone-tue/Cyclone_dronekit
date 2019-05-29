@@ -119,7 +119,7 @@ class HighLevelThread(threading.Thread):
         self.drone.set_message_rate() #TODO move to Cyclone object
 
         #start plot
-        fig = pyplot.figure()
+        fig = plt.figure()
         ax = Axes3D(fig)
 
         while not self.stop.isSet():
@@ -147,6 +147,9 @@ class HighLevelThread(threading.Thread):
                 vz=self.vehicle.velocity[2]
 
                 t=self.getTarget()
+                #Testing hover, TODO remove
+                t=[0,x,y,-1,0,0,0,0,0,0,0]
+
                 tx=t[1]
                 ty=t[2]
                 tz=t[3]
