@@ -20,6 +20,7 @@ class HighLevelThread(threading.Thread):
         self.stop = threading.Event()
         self.newPath=True
         self.logging = logging
+        self.plotTime=[]
         self.plotTarget=[[],[],[]]
         self.plotFlown=[[],[],[]]
 
@@ -43,11 +44,9 @@ class HighLevelThread(threading.Thread):
 
         return lpath
 
-    def getTarget(self):
+    def getTarget(self,t):
         hasLow=False
         hasHigh=False
-
-        t=time.time()-self.t0
 
         for i in range(len(self.localPath)):
             if t > self.localPath[i][0]:
@@ -113,7 +112,7 @@ class HighLevelThread(threading.Thread):
         #taz=az-g
 
         #TODO check this rate
-        sleeptime=0.01/2; #NOTE: also used in plt.pauze()
+        sleeptime=0.01;
 
         counter=0 #counter for message rate setter
         self.drone.set_message_rate() #TODO move to Cyclone object
@@ -142,19 +141,21 @@ class HighLevelThread(threading.Thread):
                 vy=self.vehicle.velocity[1]
                 vz=self.vehicle.velocity[2]
 
-                t=self.getTarget()
+                t=time.time()-self.t0
+
+                target=self.getTarget(t)
                 #Testing hover, TODO remove
                 #t=[0,x,y,-1,0,0,0,0,0,0,0]
 
-                tx=t[1]
-                ty=t[2]
-                tz=t[3]
-                tvx=t[4]
-                tvy=t[5]
-                tvz=t[6]
-                tax=t[7]
-                tay=t[8]
-                taz=t[9]-g
+                tx=target[1]
+                ty=target[2]
+                tz=target[3]
+                tvx=target[4]
+                tvy=target[5]
+                tvz=target[6]
+                tax=target[7]
+                tay=target[8]
+                taz=target[9]-g
                 #NOTE: z control not implemented yet, because of weird thrust 0.5 setting, so uncomment that
 
                 ex=tx-x
@@ -216,6 +217,7 @@ class HighLevelThread(threading.Thread):
                     self.logging.warning("Clipping z")
 
                 #save target and current point for plotting
+                self.plotTime.append(t)
                 self.plotTarget[0].append(tx)
                 self.plotTarget[1].append(ty)
                 self.plotTarget[2].append(tz)
