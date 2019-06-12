@@ -104,8 +104,8 @@ class HighLevelThread(threading.Thread):
         d=1.6
 
         #NOTE: z control not implemented yet, because of weird thrust 0.5 setting
-        pz=p*5
-        dz=d*5
+        pz=p*5*4
+        dz=d*5*4
 
         #NOTE: z control not implemented yet, because of weird thrust 0.5 setting, so remove this:
         #az=0
@@ -184,7 +184,7 @@ class HighLevelThread(threading.Thread):
                 xa = max(xa, -maxgsxy*g)
                 ya = min(maxgsxy*g, ya)
                 ya = max(ya, -maxgsxy*g)
-                za = min(g+maxgsz*g, za)
+                za = min(-g+maxgsz*g, za)
                 za = max(za, -g-maxgsz*g)
 
                 #NOTE: z control not implemented yet, because of weird thrust 0.5 setting, so remove this:
@@ -213,7 +213,7 @@ class HighLevelThread(threading.Thread):
                 if(abs(xa)==maxgsxy*g or abs(ya)==maxgsxy*g):
                     self.logging.warning("Clipping x/y")
 
-                if(za==g+maxgsz*g or za==-g-maxgsz*g):
+                if(za==-g+maxgsz*g or za==-g-maxgsz*g):
                     self.logging.warning("Clipping z")
 
                 #save target and current point for plotting
